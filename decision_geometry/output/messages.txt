@@ -1,0 +1,3 @@
+Tue May 21 08:37:17 2019 : simulation started
+Tue May 21 08:37:17 2019 : random seed set to 2904885175
+Tue May 21 08:37:19 2019 : simulation ended
