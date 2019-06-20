@@ -16,9 +16,10 @@ spin::~spin(void)
 {
 }
 
-void spin::Setup(const CVec2D& set_position, double& set_temperature, int& set_informed, bool& set_state, double& set_fitness)
+void spin::Setup(const CVec2D& set_position, const CVec2D& set_grid_position, double& set_temperature, int& set_informed, bool& set_state, double& set_fitness)
 {
     position = set_position;
+    grid_position = set_grid_position;
     informed = set_informed;
     state = set_state;
     
