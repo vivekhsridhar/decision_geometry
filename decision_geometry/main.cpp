@@ -46,16 +46,12 @@ int main()
     overall_angle = 360.0;  // used for the symmetric case ('overall_angle' is split into 'number_of_cues' equal angles)
     dist_thresh = 10.0;
     max_angle = Pi/3;       // used for the asymmetric case ('max_angle' is split into 'number_of_cues' - 1 equal angles)
-    frontal_distance = 100.0;
-    lateral_distance = 500.0;
-    cue_speed = 0.5;        // speed with which the cues move in the 'moving_cues' case
     
     agent = new spin[total_agents];
     CS = new cue[number_of_cues];
     
     std::fill_n(n_inds_preference, number_of_cues, 0);
     symmetric = false;
-    moving_cues = false;
     
     // Open output files
     outputFile1 = std::ofstream("geometry.csv");
@@ -64,8 +60,7 @@ int main()
     outputFile4 = std::ofstream("speed_profile.csv");
     
     // Output file headers
-    if (moving_cues) outputFile1 << "temperature" << ", " << "replicate" << ", " << "x" << ", " << "y" << ", " << "v1_x" << ", " << "v1_y" << ", " << "v2_x" << ", " << "v2_y" << ", " << "lateral_distance" << ", " << "frontal_distance" << ", " << "cue_speed" << "\n";
-    else outputFile1 << "temperature" << ", " << "replicate" << ", " << "x" << ", " << "y" << ", " << "theta" << ", " << "dir_x" << ", " << "dir_y" << "\n";
+    outputFile1 << "temperature" << ", " << "replicate" << ", " << "x" << ", " << "y" << ", " << "theta" << ", " << "dir_x" << ", " << "dir_y" << "\n";
     outputFile2 << "temperature" << ", " << "replicate" << ", " << "ncues" << ", " << "n_success" << "\n";
     outputFile3 << "group_size" << ", " << "ncues" << ", " << "path_length" << ", " << "decision_time" << "\n";
     outputFile4 << "time" << ", " << "speed" << "\n";
@@ -85,52 +80,42 @@ int main()
 
 void RunGeneration()
 {
-    int num_timesteps = 1000000;
+    int num_timesteps = 100000;
     int num_replicates = 1;
     timestep_number = 0;
     
-    for (double ld = 200.0; ld < 5000.0;)
+    for (double temp = 0.0; temp < 0.1;)
     {
-        lateral_distance = ld;
-        for (double fd = 100.0; fd < 500.0;)
+        SetupSimulation(temp);
+        for (int rep = 0; rep != num_replicates; ++rep)
         {
-            frontal_distance = fd;
-            double temp = 0.05;
-            for (int rep = 0; rep != num_replicates; ++rep)
+            ResetSetup();
+            while (timestep_number != num_timesteps)
             {
-                SetupSimulation(temp);
-                    
-                while (timestep_number != num_timesteps)
+                FlipSpins();
+                MoveAgents();
+                if (timestep_number % 10 == 0)
                 {
-                    FlipSpins();
-                    MoveAgents();
-                    if (timestep_number % 10 == 0)
-                    {
-                        //Graphics();
-                        GenerationalOutput(temp, rep);
-                    }
-                        
-                    ++trial_time;
-                    ++timestep_number;
-                        
-                    // reset agents if target is reached
-                    if (rep_done)
-                    {
-                        ++n_successful;
-                        if (!moving_cues) ResetSetup();
-                    }
+                    Graphics();
+                    GenerationalOutput(temp, rep);
                 }
-                    
-                outputFile2 << temp << ", " << rep << ", " << number_of_cues << ", " << n_successful << "\n";
+                
+                ++trial_time;
+                ++timestep_number;
+                
+                // reset agents if target is reached
+                if (rep_done)
+                {
+                    ++n_successful;
+                    break;
+                }
             }
             
-            if (moving_cues) fd += 100.0;
-            else fd += 1e6;
+            outputFile2 << temp << ", " << rep << ", " << number_of_cues << ", " << n_successful << "\n";
         }
         
-        std::cout << ld << "\n";
-        if (moving_cues) ld += 200.0;
-        else ld += 1e6;
+        temp += 0.02;
+        std::cout << temp << " ";
     }
 }
 
@@ -195,11 +180,6 @@ void MoveAgents()
     }
     
     path_length += system_magnetisation.length();
-    
-    if (moving_cues)
-    {
-        for (int i = 0; i != number_of_cues; ++i) CS[i].centre.x += system_magnetisation.x;
-    }
 }
 
 //**************************************************************************************************
@@ -231,7 +211,6 @@ void SetupEnvironmentSymmetric()
     
     double theta = overall_angle * PiOver180 / number_of_cues;
     
-    if (moving_cues) assert(number_of_cues == 2);
     for (int i = 0; i != number_of_cues; ++i)
     {
         centres[i] = start + CVec2D(start_dist * cos((i-1) * theta), start_dist * sin((i-1) * theta));
@@ -247,23 +226,10 @@ void SetupEnvironmentAsymmetric()
     double theta = 0.0;
     if (number_of_cues != 1) theta = max_angle / (number_of_cues - 1);
     
-    if (moving_cues)
+    for (int i = 0; i != number_of_cues; ++i)
     {
-        assert(number_of_cues == 2);
-        for (int i = 0; i != number_of_cues; ++i)
-        {
-            if (i == 0) centres[i] = start + CVec2D(frontal_distance, -lateral_distance/2);
-            else centres[i] = start + CVec2D(frontal_distance, lateral_distance/2);
-            CS[i].Setup(centres[i]);
-        }
-    }
-    else
-    {
-        for (int i = 0; i != number_of_cues; ++i)
-        {
-            centres[i] = start + CVec2D(start_dist * cos(i * theta - max_angle/2), start_dist * sin(i * theta - max_angle/2));
-            CS[i].Setup(centres[i]);
-        }
+        centres[i] = start + CVec2D(start_dist * cos(i * theta - max_angle/2), start_dist * sin(i * theta - max_angle/2));
+        CS[i].Setup(centres[i]);
     }
 }
 
@@ -354,8 +320,7 @@ void GenerationalOutput(double temp, int rep)
     v1 = (CS[0].centre - centroid).normalise();
     v2 = (CS[number_of_cues-1].centre - centroid).normalise();
     
-    if (moving_cues) outputFile1 << temp << ", " << rep << ", " << centroid.x << ", " << centroid.y << ", " << CS[0].centre.x << ", " << CS[0].centre.y << ", " << CS[number_of_cues-1].centre.x << ", " << CS[number_of_cues-1].centre.y << ", " << lateral_distance << ", " << CS[0].centre.x - centroid.x << ", " << system_magnetisation.x << "\n";
-    else outputFile1 << temp << ", " << rep << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << "\n";
+    outputFile1 << temp << ", " << rep << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << "\n";
     outputFile4 << trial_time << ", " << system_magnetisation.length() << "\n";
 }
 

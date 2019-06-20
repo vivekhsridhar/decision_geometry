@@ -29,13 +29,9 @@ double  dist_thresh;
 double  max_angle;
 double  path_length;
 double  avg_speed;
-double  cue_speed;
-double  frontal_distance;
-double  lateral_distance;
 
 bool    rep_done;
 bool    symmetric;
-bool    moving_cues;
 
 CVec2D  arena_centre;
 CVec2D  centroid;
