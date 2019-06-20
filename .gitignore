@@ -1,3 +1,4 @@
 decision_geometry/output/*.csv
 .DS_Store
 */.DS_Store
+decision_geometry/output/.ipynb_checkpoints/
