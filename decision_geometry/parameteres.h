@@ -16,7 +16,6 @@ int     timestep_number;    // timestep number
 int     arena_size;
 int     total_agents;
 int     cue_reached;
-int     n_successful;       // number of trials when group reaches a cue
 int     trial_time;
 int     reset_no;
 

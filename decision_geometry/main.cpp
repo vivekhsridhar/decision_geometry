@@ -38,11 +38,11 @@ int main()
     // Set model parameters
     arena_size = 1000;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
-    total_agents = 6;
+    total_agents = 60;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
-    start_dist = 500.0;
+    start_dist = 100.0;
     overall_angle = 360.0;  // used for the symmetric case ('overall_angle' is split into 'number_of_cues' equal angles)
     dist_thresh = 10.0;
     max_angle = Pi/3;       // used for the asymmetric case ('max_angle' is split into 'number_of_cues' - 1 equal angles)
@@ -51,19 +51,19 @@ int main()
     CS = new cue[number_of_cues];
     
     std::fill_n(n_inds_preference, number_of_cues, 0);
-    symmetric = false;
+    symmetric = true;
     
     // Open output files
     outputFile1 = std::ofstream("geometry.csv");
-    outputFile2 = std::ofstream("success_rate.csv");
-    outputFile3 = std::ofstream("dtime.csv");
-    outputFile4 = std::ofstream("speed_profile.csv");
+    outputFile2 = std::ofstream("dtime.csv");
+    outputFile3 = std::ofstream("speed_profile.csv");
+    if (number_of_cues == 2) outputFile4 = std::ofstream("temporal_dynamics.csv");
     
     // Output file headers
-    outputFile1 << "temperature" << ", " << "replicate" << ", " << "x" << ", " << "y" << ", " << "theta" << ", " << "dir_x" << ", " << "dir_y" << "\n";
-    outputFile2 << "temperature" << ", " << "replicate" << ", " << "ncues" << ", " << "n_success" << "\n";
-    outputFile3 << "group_size" << ", " << "ncues" << ", " << "path_length" << ", " << "decision_time" << "\n";
-    outputFile4 << "time" << ", " << "speed" << "\n";
+    outputFile1 << "temperature" << ", " << "replicate" << ", " << "time" << ", " << "x" << ", " << "y" << ", " << "theta" << ", " << "dir_x" << ", " << "dir_y" << "\n";
+    outputFile2 << "group_size" << ", " << "ncues" << ", " << "path_length" << ", " << "decision_time" << "\n";
+    outputFile3 << "time" << ", " << "speed" << "\n";
+    if (number_of_cues == 2) outputFile4 << "temperature" << ", " << "replicate" << ", " << "time" << ", " << "p_minus" << ", " << "p_plus" << "\n";
     
     //===================================
     //==    functions in the main   =====
@@ -80,23 +80,23 @@ int main()
 
 void RunGeneration()
 {
-    int num_timesteps = 100000;
-    int num_replicates = 1;
+    int num_timesteps = 5000;
+    int num_replicates = 5;
     timestep_number = 0;
     
-    for (double temp = 0.0; temp < 0.1;)
+    for (double temp = 0.1; temp < 0.2;)
     {
         SetupSimulation(temp);
         for (int rep = 0; rep != num_replicates; ++rep)
         {
             ResetSetup();
-            while (timestep_number != num_timesteps)
+            while (trial_time != num_timesteps)
             {
                 FlipSpins();
                 MoveAgents();
-                if (timestep_number % 10 == 0)
+                if (trial_time % 10 == 0)
                 {
-                    Graphics();
+                    //Graphics();
                     GenerationalOutput(temp, rep);
                 }
                 
@@ -104,14 +104,8 @@ void RunGeneration()
                 ++timestep_number;
                 
                 // reset agents if target is reached
-                if (rep_done)
-                {
-                    ++n_successful;
-                    break;
-                }
+                if (rep_done) break;
             }
-            
-            outputFile2 << temp << ", " << rep << ", " << number_of_cues << ", " << n_successful << "\n";
         }
         
         temp += 0.02;
@@ -189,7 +183,6 @@ void MoveAgents()
 void SetupSimulation(double temp)
 {
     timestep_number = 0;
-    n_successful = 0;
     trial_time = 0;         // time elapsed within trial
     reset_no = 0;           // trial number
     cue_reached = -1;
@@ -250,7 +243,7 @@ void SetupSpins(double temp)
     {
         set_position = RandomBoundedPoint();
             
-        if (rnd::uniform() < 0.0) set_state = false;
+        if (rnd::uniform() < 0.5) set_state = false;
         else set_state = true;
             
         set_informed = i % number_of_cues;
@@ -320,8 +313,23 @@ void GenerationalOutput(double temp, int rep)
     v1 = (CS[0].centre - centroid).normalise();
     v2 = (CS[number_of_cues-1].centre - centroid).normalise();
     
-    outputFile1 << temp << ", " << rep << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << "\n";
-    outputFile4 << trial_time << ", " << system_magnetisation.length() << "\n";
+    outputFile1 << temp << ", " << rep << ", " << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << "\n";
+    outputFile3  << trial_time << ", " << system_magnetisation.length() << "\n";
+    
+    if (number_of_cues == 2)
+    {
+        double p_minus = 0.0;
+        double p_plus = 0.0;
+        for (int i = 0; i != total_agents; ++i)
+        {
+            if (agent[i].GetInformed() == 0) p_minus += agent[i].state;
+            else p_plus += agent[i].state;
+        }
+        p_minus /= (total_agents/number_of_cues);
+        p_plus /= (total_agents/number_of_cues);
+        
+        outputFile4 << temp << ", " << rep << ", " << trial_time << ", " << p_minus << ", " << p_plus << "\n";
+    }
 }
 
 //**************************************************************************************************
