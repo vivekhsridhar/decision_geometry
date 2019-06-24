@@ -37,10 +37,10 @@ int main()
     // Set model parameters
     arena_size = 1000;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
-    total_agents = 9;
-    grid_cols = 3;
+    total_agents = 81;
+    grid_cols = 9;
     grid_rows = total_agents / grid_cols;
-    interaction_radius = 1;
+    interaction_radius = 4;
     
     assert(total_agents % grid_cols == 0);
     
@@ -167,9 +167,8 @@ void CalculateSpinProperties(int spin_id)
                 spin_energy -=  J * agent[spin_id].state * agent[id].state;
             }
         }
-     */
     }
-    
+    */
     spin_energy /= total_agents;
     
     // calculate magnetisation
