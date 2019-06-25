@@ -81,10 +81,10 @@ int main()
 void RunGeneration()
 {
     int num_timesteps = 5000;
-    int num_replicates = 5;
+    int num_replicates = 50;
     timestep_number = 0;
     
-    for (double temp = 0.1; temp < 0.2;)
+    for (double temp = 0.05; temp < 0.1;)
     {
         SetupSimulation(temp);
         for (int rep = 0; rep != num_replicates; ++rep)
