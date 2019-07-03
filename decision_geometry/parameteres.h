@@ -18,6 +18,7 @@ int     total_agents;
 int     cue_reached;
 int     trial_time;
 int     reset_no;
+int     field_points;
 
 double  system_energy;
 CVec2D  system_magnetisation;
@@ -50,9 +51,9 @@ void SetupSimulation(double temp);
 void SetupEnvironmentSymmetric();
 void SetupEnvironmentAsymmetric();
 void SetupSpins(double temp);
-void ResetSetup();
-CVec2D RandomBoundedPoint();
-void GenerationalOutput(double temp, int rep);
+void ResetSetup(double x, double y);
+CVec2D RandomBoundedPoint(double x, double y);
+void GenerationalOutput(double temp, int rep, int condition);
 
 void Graphics();
 void GraphicsWriter(cv::VideoWriter& video_writer, int& timestep_number, const int& num_timesteps);
