@@ -35,7 +35,7 @@ int main()
     // Set model parameters
     arena_size = 1000;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
-    total_agents = 4;
+    total_agents = 60;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
@@ -73,8 +73,8 @@ int main()
 
 void RunGeneration()
 {
-    int num_timesteps = 500;
-    int num_replicates = 20;
+    int num_timesteps = 200;
+    int num_replicates = 50;
     int num_simulations = field_points*field_points;
     timestep_number = 0;
     
@@ -93,7 +93,7 @@ void RunGeneration()
             {
                 FlipSpins();
                 MoveAgents();
-                if (trial_time != 0 && trial_time % 499 == 0)
+                if (trial_time != 0 && trial_time % (num_timesteps-1) == 0)
                 {
                     //Graphics();
                     GenerationalOutput(0.0, rep, sim);
@@ -284,8 +284,8 @@ CVec2D RandomBoundedPoint(double x, double y)
     double range_x = (double) arena_size;
     double range_y = (double) arena_size;
     
-    double random_x = uniform();
-    double random_y = uniform();
+    double random_x = 0.5;//uniform();
+    double random_y = 0.5;//uniform();
     
     // Individuals start in the centre-left 100th of their world
     random_x *= (range_x / 100.0);
