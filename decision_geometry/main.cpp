@@ -40,9 +40,12 @@ int main()
     system_magnetisation = CVec2D(0.0, 0.0);
     
     start_dist = 500.0;
-    overall_angle = 360.0;  // used for the symmetric case ('overall_angle' is split into 'number_of_cues' equal angles)
+    overall_angle = 360.0;      // used for the symmetric case ('overall_angle' is split into 'number_of_cues' equal angles)
     dist_thresh = 10.0;
-    max_angle = Pi/3;       // used for the asymmetric case ('max_angle' is split into 'number_of_cues' - 1 equal angles)
+    if (number_of_cues == 2) max_angle = Pi/3;
+    else max_angle = 4*Pi/9;    // used for the asymmetric case ('max_angle' is split into 'number_of_cues' - 1 equal angles)
+    
+    hat_width = 0.25;           // inversely proportional to the hat width in the mexican hat function
     
     field_points = 101;
     
@@ -56,7 +59,7 @@ int main()
     outputFile1 = std::ofstream("geometry.csv");
     
     // Output file headers
-    outputFile1 << "replicate" << ", " << "time" << ", " << "x" << ", " << "y" << ", " << "dir_x" << ", " << "dir_y" << ", " << "sim_id" << "\n";
+    outputFile1 << "replicate" << ", " << "time" << ", " << "x" << ", " << "y" << ", " << "angular_disagreement" << ", " << "relative_direction" << ", " << "dir_x" << ", " << "dir_y" << ", " << "sim_id" << "\n";
     
     //===================================
     //==    functions in the main   =====
@@ -73,27 +76,27 @@ int main()
 
 void RunGeneration()
 {
-    int num_timesteps = 200;
-    int num_replicates = 50;
-    int num_simulations = field_points*field_points;
+    int num_timesteps = 10000;
+    int num_replicates = 500;
+    int num_simulations = 1;//field_points*field_points;
     timestep_number = 0;
     
-    SetupSimulation(0.0);
+    SetupSimulation(0.05);
     for (int sim = 0; sim != num_simulations; ++sim)
     {
-        int x = sim / field_points;
-        int y = sim % field_points;
+        //int x = sim / field_points;
+        //int y = sim % field_points;
         
         for (int rep = 0; rep != num_replicates; ++rep)
         {
-            ResetSetup(x, y);
-            if (agent[0].position.x > CS[0].centre.x) break;
+            ResetSetup(0, arena_size/2);
+            //if (agent[0].position.x > CS[0].centre.x) break;
             
             while (trial_time != num_timesteps)
             {
                 FlipSpins();
                 MoveAgents();
-                if (trial_time != 0 && trial_time % (num_timesteps-1) == 0)
+                if (trial_time != 0 && trial_time % 10 == 0)
                 {
                     //Graphics();
                     GenerationalOutput(0.0, rep, sim);
@@ -131,7 +134,9 @@ void CalculateSystemProperties(int spin_id)
     system_energy = 0.0;
     for (int i = 0; i != total_agents; ++i)
     {
-        double J = agent[spin_id].preference.dot(agent[i].preference);
+        //double J = agent[spin_id].preference.dot(agent[i].preference);
+        double ang = agent[spin_id].preference.smallestAngleTo(agent[i].preference) * Pi / 180.0;
+        double J = 1.8*(1 - hat_width * ang * ang) * exp(-hat_width * ang * ang) - 1.0;
         if (i != spin_id) system_energy -=  J * agent[spin_id].state * agent[i].state;
     }
     system_energy /= total_agents;
@@ -152,7 +157,7 @@ void MoveAgents()
 {
     for (int i = 0; i != total_agents; ++i)
     {
-        agent[i].position += system_magnetisation*0;
+        agent[i].position += system_magnetisation;
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre, arena_centre);
     }
     
@@ -284,14 +289,14 @@ CVec2D RandomBoundedPoint(double x, double y)
     double range_x = (double) arena_size;
     double range_y = (double) arena_size;
     
-    double random_x = 0.5;//uniform();
-    double random_y = 0.5;//uniform();
+    double random_x = uniform();
+    double random_y = uniform();
     
     // Individuals start in the centre-left 100th of their world
     random_x *= (range_x / 100.0);
     random_y *= (range_y / 100.0);
-    random_x += (double) ((arena_size/2)/(field_points-1)*x - range_x / 200.0);
-    random_y += (double) ((arena_size/2)/(field_points-1)*y - range_y / 200.0 + arena_size/4);
+    if (symmetric) random_x += (double) (range_x / 2.0 - range_x / 200.0);
+    random_y += (double) (range_y / 2.0 - range_y / 200.0);
     CVec2D random_point(random_x, random_y);
     return random_point;
 }
@@ -302,7 +307,12 @@ CVec2D RandomBoundedPoint(double x, double y)
 
 void GenerationalOutput(double temp, int rep, int sim)
 {
-    outputFile1 << rep << ", " << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << system_magnetisation.x << ", " << system_magnetisation.y << ", " << sim << "\n";
+    CVec2D v1;
+    CVec2D v2;
+    v1 = (CS[0].centre - centroid).normalise();
+    v2 = (CS[number_of_cues-1].centre - centroid).normalise();
+    
+    outputFile1 << rep << ", " << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.smallestAngleTo(v1) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << ", " << sim << "\n";
 }
 
 //**************************************************************************************************

@@ -29,6 +29,7 @@ double  dist_thresh;
 double  max_angle;
 double  path_length;
 double  avg_speed;
+double  hat_width;
 
 bool    rep_done;
 bool    symmetric;
