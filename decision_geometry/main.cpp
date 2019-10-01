@@ -39,9 +39,9 @@ int main()
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
-    start_dist = 500.0;
+    start_dist = 100000.0;
     overall_angle = 360.0;      // used for the symmetric case ('overall_angle' is split into 'number_of_cues' equal angles)
-    dist_thresh = 10.0;
+    dist_thresh = 5.0;
     if (number_of_cues == 2) max_angle = Pi/3;
     else max_angle = 4*Pi/9;    // used for the asymmetric case ('max_angle' is split into 'number_of_cues' - 1 equal angles)
     
@@ -76,7 +76,7 @@ int main()
 
 void RunGeneration()
 {
-    int num_timesteps = 10000;
+    int num_timesteps = 1000000;
     int num_replicates = 500;
     int num_simulations = 1;//field_points*field_points;
     timestep_number = 0;
@@ -96,7 +96,7 @@ void RunGeneration()
             {
                 FlipSpins();
                 MoveAgents();
-                if (trial_time != 0 && trial_time % 10 == 0)
+                if (trial_time != 0 && trial_time % int(start_dist / 100) == 0)
                 {
                     //Graphics();
                     GenerationalOutput(0.0, rep, sim);
@@ -293,10 +293,10 @@ CVec2D RandomBoundedPoint(double x, double y)
     double random_y = uniform();
     
     // Individuals start in the centre-left 100th of their world
-    random_x *= (range_x / 100.0);
-    random_y *= (range_y / 100.0);
-    if (symmetric) random_x += (double) (range_x / 2.0 - range_x / 200.0);
-    random_y += (double) (range_y / 2.0 - range_y / 200.0);
+    random_x *= (range_x / 1000.0);
+    random_y *= (range_y / 1000.0);
+    if (symmetric) random_x += (double) (range_x / 2.0 - range_x / 2000.0);
+    random_y += (double) (range_y / 2.0 - range_y / 2000.0);
     CVec2D random_point(random_x, random_y);
     return random_point;
 }
