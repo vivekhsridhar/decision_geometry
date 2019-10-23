@@ -16,9 +16,10 @@ using namespace rnd;
 using namespace cv;
 
 std::ofstream outputFile1;
+std::ofstream outputFile2;
 
 //**************************************************************************************************
-//**	MAIN	************************************************************************************
+//**    MAIN    ************************************************************************************
 //**************************************************************************************************
 
 int main()
@@ -35,13 +36,13 @@ int main()
     // Set model parameters
     arena_size = 1000;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
-    total_agents = 60;
+    total_agents = 59;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
     start_dist = 500.0;
     overall_angle = 360.0;      // used for the symmetric case ('overall_angle' is split into 'number_of_cues' equal angles)
-    dist_thresh = 5.0;
+    dist_thresh = 10.0;
     if (number_of_cues == 2) max_angle = Pi/3;
     else max_angle = 4*Pi/9;    // used for the asymmetric case ('max_angle' is split into 'number_of_cues' - 1 equal angles)
     
@@ -57,9 +58,18 @@ int main()
     
     // Open output files
     outputFile1 = std::ofstream("geometry.csv");
+    outputFile2 = std::ofstream("cue_reached.csv");
     
     // Output file headers
-    outputFile1 << "replicate" << ", " << "time" << ", " << "x" << ", " << "y" << ", " << "dir_x" << ", " << "dir_y" << ", " << "sim_id" << "\n";
+    outputFile1 << "replicate" << ", " << "time" << ", " << "x" << ", " << "y" << ", " << "angular_disagreement" << ", " << "relative_direction" << ", " << "dir_x" << ", " << "dir_y" << ", " << "sim_id" << "\n";
+    if (number_of_cues == 2)
+    {
+        outputFile2 << "replicate" << ", " << "n1" << ", " << "n2" << ", " << "target_reached" << "\n";
+    }
+    else if (number_of_cues == 3)
+    {
+        outputFile2 << "replicate" << ", " << "n1" << ", " << "n2" << ", " << "n3" << ", " << "target_reached" << "\n";
+    }
     
     //===================================
     //==    functions in the main   =====
@@ -76,27 +86,27 @@ int main()
 
 void RunGeneration()
 {
-    int num_timesteps = 200;
-    int num_replicates = 50;
-    int num_simulations = field_points*field_points;
+    int num_timesteps = 10000;
+    int num_replicates = 500;
+    int num_simulations = 1;//field_points*field_points;
     timestep_number = 0;
     
     SetupSimulation(0.05);
     for (int sim = 0; sim != num_simulations; ++sim)
     {
-        int x = sim / field_points;
-        int y = sim % field_points;
+        //int x = sim / field_points;
+        //int y = sim % field_points;
         
         for (int rep = 0; rep != num_replicates; ++rep)
         {
-            ResetSetup(x, y);
-            if (agent[0].position.x > CS[0].centre.x) break;
+            ResetSetup(0, arena_size/2);
+            //if (agent[0].position.x > CS[0].centre.x) break;
             
             while (trial_time != num_timesteps)
             {
                 FlipSpins();
-                MoveAgents();
-                if (trial_time != 0 && trial_time % (num_timesteps - 1) == 0)
+                MoveAgents(rep);
+                if (trial_time != 0 && trial_time % 10 == 0)
                 {
                     //Graphics();
                     GenerationalOutput(0.0, rep, sim);
@@ -153,11 +163,11 @@ void CalculateSystemProperties(int spin_id)
     system_magnetisation /= total_agents;
 }
 
-void MoveAgents()
+void MoveAgents(int rep)
 {
     for (int i = 0; i != total_agents; ++i)
     {
-        agent[i].position += system_magnetisation*0;
+        agent[i].position += system_magnetisation;
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre, arena_centre);
     }
     
@@ -171,6 +181,13 @@ void MoveAgents()
             {
                 if (agent[j].GetInformed() == i) agent[j].fitness += 1.0 / n_inds_preference[i];
             }
+            
+            outputFile2 << rep << ", ";
+            for (int j = 0; j != number_of_cues; ++j)
+            {
+                outputFile2 << n_inds_preference[j] << ", ";
+            }
+            outputFile2 << i << "\n";
         }
     }
     
@@ -289,14 +306,14 @@ CVec2D RandomBoundedPoint(double x, double y)
     double range_x = (double) arena_size;
     double range_y = (double) arena_size;
     
-    double random_x = 0.5;//uniform();
-    double random_y = 0.5;//uniform();
+    double random_x = uniform();
+    double random_y = uniform();
     
     // Individuals start in the centre-left 100th of their world
-    random_x *= (range_x / 1000.0);
-    random_y *= (range_y / 1000.0);
-    random_x += (double) ((arena_size/2)/(field_points-1)*x - range_x / 2000.0);
-    random_y += (double) ((arena_size/2)/(field_points-1)*y - range_y / 2000.0 + arena_size/4);
+    random_x *= (range_x / 100.0);
+    random_y *= (range_y / 100.0);
+    if (symmetric) random_x += (double) (range_x / 2.0 - range_x / 200.0);
+    random_y += (double) (range_y / 2.0 - range_y / 200.0);
     CVec2D random_point(random_x, random_y);
     return random_point;
 }
@@ -312,11 +329,11 @@ void GenerationalOutput(double temp, int rep, int sim)
     v1 = (CS[0].centre - centroid).normalise();
     v2 = (CS[number_of_cues-1].centre - centroid).normalise();
     
-    outputFile1 << rep << ", " << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << system_magnetisation.x << ", " << system_magnetisation.y << ", " << sim << "\n";
+    outputFile1 << rep << ", " << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.smallestAngleTo(v1) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << ", " << sim << "\n";
 }
 
 //**************************************************************************************************
-//**	GRAPHICS   *********************************************************************************
+//**    GRAPHICS   *********************************************************************************
 //**************************************************************************************************
 
 void Graphics()
