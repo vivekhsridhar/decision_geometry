@@ -36,7 +36,7 @@ int main()
     // Set model parameters
     arena_size = 1000;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
-    total_agents = 59;
+    total_agents = 60;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
@@ -265,6 +265,7 @@ void SetupSpins(double temp)
         else set_state = true;
             
         set_informed = i % number_of_cues;
+        //if (i >= 57) set_informed = 0;
         ++n_inds_preference[set_informed];
             
         set_temperature = temp;
@@ -284,6 +285,7 @@ void ResetSetup(double x, double y)
         else agent[i].state = true;
         
         int info = i % number_of_cues;
+        //if (i >= 57) info = 0;
         agent[i].SetInformed(info);
         agent[i].preference = CVec2D(0.0, 0.0);
     }
@@ -302,19 +304,11 @@ void ResetSetup(double x, double y)
 
 CVec2D RandomBoundedPoint(double x, double y)
 {
-    // Create randomly distributed co-ordinates in the simulated world space
-    double range_x = (double) arena_size;
-    double range_y = (double) arena_size;
+    double random_x = x + uniform() - 0.5;
+    double random_y = y + uniform() - 0.5;
     
-    double random_x = uniform();
-    double random_y = uniform();
-    
-    // Individuals start in the centre-left 100th of their world
-    random_x *= (range_x / 100.0);
-    random_y *= (range_y / 100.0);
-    if (symmetric) random_x += (double) (range_x / 2.0 - range_x / 200.0);
-    random_y += (double) (range_y / 2.0 - range_y / 200.0);
     CVec2D random_point(random_x, random_y);
+    
     return random_point;
 }
 
