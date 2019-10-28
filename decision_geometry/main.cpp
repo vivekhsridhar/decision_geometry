@@ -40,7 +40,7 @@ int main()
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
-    start_dist = 500.0;
+    start_dist = 40000.0;
     overall_angle = 360.0;      // used for the symmetric case ('overall_angle' is split into 'number_of_cues' equal angles)
     dist_thresh = 10.0;
     if (number_of_cues == 2) max_angle = Pi/3;
@@ -86,7 +86,7 @@ int main()
 
 void RunGeneration()
 {
-    int num_timesteps = 10000;
+    int num_timesteps = 100000;
     int num_replicates = 500;
     int num_simulations = 1;//field_points*field_points;
     timestep_number = 0;
@@ -106,7 +106,7 @@ void RunGeneration()
             {
                 FlipSpins();
                 MoveAgents(rep);
-                if (trial_time != 0 && trial_time % 10 == 0)
+                if (trial_time != 0 && trial_time % 400 == 0)
                 {
                     //Graphics();
                     GenerationalOutput(0.0, rep, sim);
@@ -265,7 +265,6 @@ void SetupSpins(double temp)
         else set_state = true;
             
         set_informed = i % number_of_cues;
-        //if (i >= 57) set_informed = 0;
         ++n_inds_preference[set_informed];
             
         set_temperature = temp;
@@ -285,7 +284,6 @@ void ResetSetup(double x, double y)
         else agent[i].state = true;
         
         int info = i % number_of_cues;
-        //if (i >= 57) info = 0;
         agent[i].SetInformed(info);
         agent[i].preference = CVec2D(0.0, 0.0);
     }
