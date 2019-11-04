@@ -83,7 +83,7 @@ void RunGeneration()
     int num_simulations = 1;//field_points*field_points;
     timestep_number = 0;
     
-    for (left_right_dist = 20; left_right_dist != 500; )
+    for (left_right_dist = 20; left_right_dist != 600; )
     {
         SetupSimulation(0.05, left_right_dist);
         for (int sim = 0; sim != num_simulations; ++sim)
@@ -161,7 +161,7 @@ void MoveAgents(int rep)
 {
     for (int i = 0; i != total_agents; ++i)
     {
-        if (distance) agent[i].position += system_magnetisation;
+        if (!distance) agent[i].position += system_magnetisation;
         else agent[i].position.y += system_magnetisation.y;
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
     }
