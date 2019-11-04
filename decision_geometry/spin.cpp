@@ -16,18 +16,16 @@ spin::~spin(void)
 {
 }
 
-void spin::Setup(const CVec2D& set_position, double& set_temperature, int& set_informed, bool& set_state, double& set_fitness)
+void spin::Setup(const CVec2D& set_position, double& set_temperature, int& set_informed, bool& set_state)
 {
     position = set_position;
     informed = set_informed;
     state = set_state;
     
     temperature = set_temperature;
-    
-    fitness = set_fitness;
 }
 
-void spin::AddPreference(CVec2D& cue_centre, CVec2D& arena_centre)
+void spin::AddPreference(CVec2D& cue_centre)
 {
     preference = (cue_centre - position).normalise();
 }
@@ -48,5 +46,4 @@ void spin::Copy(spin& source)
     informed = source.informed;
     state = source.state;
     temperature = source.temperature;
-    fitness = source.fitness;
 }

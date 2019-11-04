@@ -23,6 +23,7 @@ int     field_points;
 double  system_energy;
 CVec2D  system_magnetisation;
 
+double  left_right_dist;
 double  start_dist;
 double  overall_angle;
 double  dist_thresh;
@@ -33,6 +34,7 @@ double  hat_width;
 
 bool    rep_done;
 bool    symmetric;
+bool    distance;
 
 CVec2D  arena_centre;
 CVec2D  centroid;
@@ -48,11 +50,12 @@ void FlipSpins();
 void CalculateSystemProperties(int spin_id);
 void CalculateSpinProperties(double& energy, int spin_id);
 void MoveAgents(int rep);
-void SetupSimulation(double temp);
+void SetupSimulation(double temp, double dist);
 void SetupEnvironmentSymmetric();
 void SetupEnvironmentAsymmetric();
+void SetupEnvironmentDistances(double& dist);
 void SetupSpins(double temp);
-void ResetSetup(double x, double y);
+void ResetSetup(double x, double y, double dist);
 CVec2D RandomBoundedPoint(double x, double y);
 void GenerationalOutput(double temp, int rep, int condition);
 

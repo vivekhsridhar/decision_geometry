@@ -16,7 +16,6 @@ using namespace rnd;
 using namespace cv;
 
 std::ofstream outputFile1;
-std::ofstream outputFile2;
 
 //**************************************************************************************************
 //**    MAIN    ************************************************************************************
@@ -40,7 +39,8 @@ int main()
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
-    start_dist = 40000.0;
+    left_right_dist = 200;
+    start_dist = 100.0;
     overall_angle = 360.0;      // used for the symmetric case ('overall_angle' is split into 'number_of_cues' equal angles)
     dist_thresh = 10.0;
     if (number_of_cues == 2) max_angle = Pi/3;
@@ -54,22 +54,14 @@ int main()
     CS = new cue[number_of_cues];
     
     std::fill_n(n_inds_preference, number_of_cues, 0);
+    distance = true;
     symmetric = false;
     
     // Open output files
     outputFile1 = std::ofstream("geometry.csv");
-    outputFile2 = std::ofstream("cue_reached.csv");
     
     // Output file headers
-    outputFile1 << "replicate" << ", " << "time" << ", " << "x" << ", " << "y" << ", " << "angular_disagreement" << ", " << "relative_direction" << ", " << "dir_x" << ", " << "dir_y" << ", " << "sim_id" << "\n";
-    if (number_of_cues == 2)
-    {
-        outputFile2 << "replicate" << ", " << "n1" << ", " << "n2" << ", " << "target_reached" << "\n";
-    }
-    else if (number_of_cues == 3)
-    {
-        outputFile2 << "replicate" << ", " << "n1" << ", " << "n2" << ", " << "n3" << ", " << "target_reached" << "\n";
-    }
+    outputFile1 << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << ", " << "temperature" << "\n";
     
     //===================================
     //==    functions in the main   =====
@@ -86,39 +78,42 @@ int main()
 
 void RunGeneration()
 {
-    int num_timesteps = 100000;
-    int num_replicates = 500;
+    int num_timesteps = 10000;
+    int num_replicates = 50;
     int num_simulations = 1;//field_points*field_points;
     timestep_number = 0;
     
-    SetupSimulation(0.05);
-    for (int sim = 0; sim != num_simulations; ++sim)
+    for (left_right_dist = 20; left_right_dist != 500; )
     {
-        //int x = sim / field_points;
-        //int y = sim % field_points;
-        
-        for (int rep = 0; rep != num_replicates; ++rep)
+        SetupSimulation(0.05, left_right_dist);
+        for (int sim = 0; sim != num_simulations; ++sim)
         {
-            ResetSetup(0, arena_size/2);
-            //if (agent[0].position.x > CS[0].centre.x) break;
-            
-            while (trial_time != num_timesteps)
+            for (int rep = 0; rep != num_replicates; ++rep)
             {
-                FlipSpins();
-                MoveAgents(rep);
-                if (trial_time != 0 && trial_time % 400 == 0)
+                ResetSetup(0, arena_size/2, left_right_dist);
+                //if (agent[0].position.x > CS[0].centre.x) break;
+                
+                while (trial_time != num_timesteps)
                 {
-                    //Graphics();
-                    GenerationalOutput(0.0, rep, sim);
+                    FlipSpins();
+                    MoveAgents(rep);
+                    if (trial_time != 0 && trial_time % 10 == 0)
+                    {
+                        //Graphics();
+                        GenerationalOutput(0.0, rep, sim);
+                    }
+                    
+                    ++trial_time;
+                    ++timestep_number;
+                    
+                    // reset agents if target is reached
+                    if (rep_done) break;
                 }
-                
-                ++trial_time;
-                ++timestep_number;
-                
-                // reset agents if target is reached
-                if (rep_done) break;
             }
         }
+        
+        left_right_dist += 20;
+        std::cout << left_right_dist << " ";
     }
 }
 
@@ -144,7 +139,6 @@ void CalculateSystemProperties(int spin_id)
     system_energy = 0.0;
     for (int i = 0; i != total_agents; ++i)
     {
-        //double J = agent[spin_id].preference.dot(agent[i].preference);
         double ang = agent[spin_id].preference.smallestAngleTo(agent[i].preference) * Pi / 180.0;
         double J = 1.8*(1 - hat_width * ang * ang) * exp(-hat_width * ang * ang) - 1.0;
         if (i != spin_id) system_energy -=  J * agent[spin_id].state * agent[i].state;
@@ -167,8 +161,9 @@ void MoveAgents(int rep)
 {
     for (int i = 0; i != total_agents; ++i)
     {
-        agent[i].position += system_magnetisation;
-        agent[i].AddPreference(CS[agent[i].GetInformed()].centre, arena_centre);
+        if (distance) agent[i].position += system_magnetisation;
+        else agent[i].position.y += system_magnetisation.y;
+        agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
     }
     
     for (int i = 0; i != number_of_cues; ++i)
@@ -177,17 +172,6 @@ void MoveAgents(int rep)
         {
             rep_done = true;
             cue_reached = i;
-            for (int j = 0; j != total_agents; ++j)
-            {
-                if (agent[j].GetInformed() == i) agent[j].fitness += 1.0 / n_inds_preference[i];
-            }
-            
-            outputFile2 << rep << ", ";
-            for (int j = 0; j != number_of_cues; ++j)
-            {
-                outputFile2 << n_inds_preference[j] << ", ";
-            }
-            outputFile2 << i << "\n";
         }
     }
     
@@ -198,7 +182,7 @@ void MoveAgents(int rep)
 //**    SETUP FUNCTIONS ****************************************************************************
 //**************************************************************************************************
 
-void SetupSimulation(double temp)
+void SetupSimulation(double temp, double dist)
 {
     timestep_number = 0;
     trial_time = 0;         // time elapsed within trial
@@ -210,6 +194,7 @@ void SetupSimulation(double temp)
     
     centroid = arena_centre;
     if (symmetric) SetupEnvironmentSymmetric();
+    else if (distance) SetupEnvironmentDistances(dist);
     else SetupEnvironmentAsymmetric();
     
     SetupSpins(temp);
@@ -244,6 +229,23 @@ void SetupEnvironmentAsymmetric()
     }
 }
 
+void SetupEnvironmentDistances(double& dist)
+{
+    for (int i = 0; i != number_of_cues; ++i)
+    {
+        if (number_of_cues == 2)
+        {
+            centres[i] = CVec2D(start_dist, arena_size / 2 - dist / 2 + i * dist);
+        }
+        else
+        {
+            centres[i] = CVec2D(start_dist, arena_size / 2 - dist + i * dist);
+        }
+        
+        CS[i].Setup(centres[i]);
+    }
+}
+
 void SetupSpins(double temp)
 {
     CVec2D set_position;
@@ -269,12 +271,12 @@ void SetupSpins(double temp)
             
         set_temperature = temp;
             
-        agent[i].Setup(set_position, set_temperature, set_informed, set_state, set_fitness);
-        agent[i].AddPreference(CS[agent[i].GetInformed()].centre, arena_centre);
+        agent[i].Setup(set_position, set_temperature, set_informed, set_state);
+        agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
     }
 }
 
-void ResetSetup(double x, double y)
+void ResetSetup(double x, double y, double dist)
 {
     for(int i = 0; i != total_agents; ++i)
     {
@@ -289,6 +291,7 @@ void ResetSetup(double x, double y)
     }
     
     if (symmetric) SetupEnvironmentSymmetric();
+    else if (distance) SetupEnvironmentDistances(dist);
     else SetupEnvironmentAsymmetric();
     
     trial_time = 0;
@@ -321,7 +324,7 @@ void GenerationalOutput(double temp, int rep, int sim)
     v1 = (CS[0].centre - centroid).normalise();
     v2 = (CS[number_of_cues-1].centre - centroid).normalise();
     
-    outputFile1 << rep << ", " << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.smallestAngleTo(v1) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << ", " << sim << "\n";
+    outputFile1 << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << ", " << temp << "\n";
 }
 
 //**************************************************************************************************
