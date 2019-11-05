@@ -40,7 +40,7 @@ int main()
     system_magnetisation = CVec2D(0.0, 0.0);
     
     left_right_dist = 200;
-    start_dist = 100.0;
+    start_dist = 500.0;
     overall_angle = 360.0;      // used for the symmetric case ('overall_angle' is split into 'number_of_cues' equal angles)
     dist_thresh = 10.0;
     if (number_of_cues == 2) max_angle = Pi/3;
@@ -54,14 +54,21 @@ int main()
     CS = new cue[number_of_cues];
     
     std::fill_n(n_inds_preference, number_of_cues, 0);
-    distance = true;
+    distance = false;
     symmetric = false;
     
     // Open output files
     outputFile1 = std::ofstream("geometry.csv");
     
     // Output file headers
-    outputFile1 << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << ", " << "temperature" << "\n";
+    if (distance)
+    {
+        outputFile1 << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << ", " << "temperature" << "\n";
+    }
+    else
+    {
+        outputFile1 << "replicate" << ", " << "time" << ", " << "x" << ", " << "y" << ", " << "angular_disagreement" << ", " << "relative_direction" << ", " << "dir_x" << ", " << "dir_y" << ", " << "sim_id" << "\n";
+    }
     
     //===================================
     //==    functions in the main   =====
@@ -79,11 +86,11 @@ int main()
 void RunGeneration()
 {
     int num_timesteps = 10000;
-    int num_replicates = 50;
+    int num_replicates = 500;
     int num_simulations = 1;//field_points*field_points;
     timestep_number = 0;
     
-    for (left_right_dist = 20; left_right_dist != 600; )
+    for (left_right_dist = 20; left_right_dist < 600; )
     {
         SetupSimulation(0.05, left_right_dist);
         for (int sim = 0; sim != num_simulations; ++sim)
@@ -112,8 +119,8 @@ void RunGeneration()
             }
         }
         
-        left_right_dist += 20;
-        std::cout << left_right_dist << " ";
+        left_right_dist += 20000;
+        //std::cout << left_right_dist << " ";
     }
 }
 
@@ -324,7 +331,14 @@ void GenerationalOutput(double temp, int rep, int sim)
     v1 = (CS[0].centre - centroid).normalise();
     v2 = (CS[number_of_cues-1].centre - centroid).normalise();
     
-    outputFile1 << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << ", " << temp << "\n";
+    if (distance)
+    {
+        outputFile1 << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << ", " << temp << "\n";
+    }
+    else
+    {
+        outputFile1 << rep << ", " << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.smallestAngleTo(v1) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << ", " << sim << "\n";
+    }
 }
 
 //**************************************************************************************************
