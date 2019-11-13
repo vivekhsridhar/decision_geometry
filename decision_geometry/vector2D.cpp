@@ -238,11 +238,12 @@ double CVec2D::smallestAngleTo(CVec2D other_vector)
     vec = vec.normalise();	// the speed is unimportant so the vector can be normalised
     
     double dot_product = vec.dot(other_vector);
-    
     // important to have these lines below in
-    //	if(dot_product > 1.0f)	{	dot_product = 1.0f;	}
-    //	if(dot_product < 0.0f)	{	dot_product = 0.0f;	}
+    if(dot_product > 1.0) dot_product = 1.0;
+    if(dot_product < -1.0) dot_product = -1.0;
     
     double val = (acos(dot_product));
+    
+    if (val != val) std::cout << dot_product << " " << val << "\n";
     return (val/PiOver180);
 }

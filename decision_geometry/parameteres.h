@@ -18,19 +18,17 @@ int     total_agents;
 int     cue_reached;
 int     trial_time;
 int     reset_no;
-int     field_points;
 
 double  system_energy;
 CVec2D  system_magnetisation;
 
 double  left_right_dist;
 double  start_dist;
-double  overall_angle;
 double  dist_thresh;
 double  max_angle;
-double  path_length;
-double  avg_speed;
 double  hat_width;
+
+double  path_length;
 
 bool    rep_done;
 bool    symmetric;
@@ -50,16 +48,15 @@ void FlipSpins();
 void CalculateSystemProperties(int spin_id);
 void CalculateSpinProperties(double& energy, int spin_id);
 void MoveAgents(int rep);
-void SetupSimulation(double temp, double dist);
+void SetupSimulation(double temp);
 void SetupEnvironmentSymmetric();
 void SetupEnvironmentAsymmetric();
-void SetupEnvironmentDistances(double& dist);
+void SetupEnvironmentDistances();
 void SetupSpins(double temp);
-void ResetSetup(double x, double y, double dist);
+void ResetSetup(double x, double y);
 CVec2D RandomBoundedPoint(double x, double y);
-void GenerationalOutput(double temp, int rep, int condition);
+void GenerationalOutput(int rep);
 
 void Graphics();
-void GraphicsWriter(cv::VideoWriter& video_writer, int& timestep_number, const int& num_timesteps);
 
 #endif /* parameteres_h */
