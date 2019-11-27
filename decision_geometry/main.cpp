@@ -40,7 +40,7 @@ int main()
     
     arena_size = 1000;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
-    total_agents = 60;
+    total_agents = 61;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
@@ -49,7 +49,7 @@ int main()
     else start_dist = 500;
     
     dist_thresh = 10.0;
-    if (number_of_cues == 2) max_angle = Pi/3;
+    if (number_of_cues == 2) max_angle = PI/3;
     else max_angle = 4*Pi/9;    // used for the asymmetric case ('max_angle' is split into 'number_of_cues' - 1 equal angles)
     
     hat_width = 0.25;           // inversely proportional to the hat width in the mexican hat function
@@ -66,11 +66,11 @@ int main()
     
     // Output file headers
     if (distance) outputFile1 << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << "\n";
-    else outputFile1 << "replicate" << ", " << "x" << ", " << "y" << ", " << "angular_disagreement" << ", " << "dir_x" << ", " << "dir_y" << "\n";
+    else outputFile1 << "replicate" << ", " << "x" << ", " << "y" << ", " << "hat_width" << ", " << "dir_x" << ", " << "dir_y" << "\n";
     
     outputFile2 << "replicate" << ", " << "n1" << ", " << "n2" << ", ";
     if (number_of_cues == 3) outputFile2 << "n3" << ", ";
-    outputFile2 << "target_reached" << ", " << "path_length" << "\n";
+    outputFile2 << "tuning" << ", " << "consensus" << ", " << "angle" << "\n";
     
     //===================================
     //==    functions in the main   =====
@@ -87,38 +87,47 @@ int main()
 
 void RunGeneration()
 {
-    int num_timesteps = 10000;
-    int num_replicates = 50;
+    int num_timesteps = 1000;
+    int num_replicates = 5000;
     timestep_number = 0;
     
-    for (left_right_dist = 50; left_right_dist < 500; )
+    for (hat_width = 0.1; hat_width < 0.8; )
     {
-        SetupSimulation(0.05);
-        for (int rep = 0; rep != num_replicates; ++rep)
+        for (max_angle = PI/6; max_angle <= PI; )
         {
-            ResetSetup(0, arena_size/2);
+            if (distance) hat_width = 0.25;
             
-            while (trial_time != num_timesteps)
+            SetupSimulation(0.05);
+            for (int rep = 0; rep != num_replicates; ++rep)
             {
-                FlipSpins();
-                MoveAgents(rep);
-                if (trial_time != 0 && trial_time % 10 == 0)
+                ResetSetup(0, arena_size/2);
+                
+                while (trial_time != num_timesteps)
                 {
-                    //Graphics();
-                    GenerationalOutput(rep);
+                    FlipSpins();
+                    MoveAgents(rep);
+                    if (trial_time != 0 && trial_time % 10 == 0)
+                    {
+                        //Graphics();
+                        GenerationalOutput(rep);
+                    }
+                    
+                    ++trial_time;
+                    ++timestep_number;
+                    
+                    // reset agents if target is reached
+                    if (rep_done) break;
                 }
-                
-                ++trial_time;
-                ++timestep_number;
-                
-                // reset agents if target is reached
-                if (rep_done) break;
             }
+            
+            if (!distance) max_angle += PI/18;
+            else max_angle += PI;
+            std::cout << max_angle << " ";
         }
         
-        if (distance) left_right_dist += 50;
-        else left_right_dist += 500;
-        std::cout << left_right_dist << " ";
+        if (distance) hat_width += 50;
+        else hat_width += 0.05;
+        std::cout << hat_width << "\n";
     }
 }
 
@@ -165,16 +174,21 @@ void CalculateSystemProperties(int spin_id)
 
 void MoveAgents(int rep)
 {
+    double consensus = 0.0;
+    
     for (int i = 0; i != total_agents; ++i)
     {
-        if (!distance) agent[i].position += system_magnetisation;
+        if (!distance) agent[i].position += system_magnetisation*0;
         else agent[i].position.y += system_magnetisation.y;
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
+        
+        if (agent[i].GetInformed() == 0) consensus += agent[i].state;
+        else consensus -= agent[i].state;
     }
     
     for (int i = 0; i != number_of_cues; ++i)
     {
-        if (centroid.distanceTo(CS[i].centre) < dist_thresh * dist_thresh)
+        if (centroid.distanceTo(CS[i].centre) < dist_thresh * dist_thresh || (trial_time == 999 && i == 0))
         {
             rep_done = true;
             cue_reached = i;
@@ -184,7 +198,7 @@ void MoveAgents(int rep)
             {
                 outputFile2 << n_inds_preference[j] << ", ";
             }
-            outputFile2 << i << ", " << path_length << "\n";
+            outputFile2 << hat_width << ", " << consensus << ", " << max_angle*180/PI << "\n";
         }
     }
     
@@ -268,6 +282,7 @@ void SetupSpins(double set_temperature)
     
     set_preference = CVec2D(0.0, 0.0);
     set_fitness = 0.0;
+    std::fill_n(n_inds_preference, number_of_cues, 0);
     
     for(int i = 0; i != total_agents; ++i)
     {
@@ -338,7 +353,7 @@ void GenerationalOutput(int rep)
     }
     else
     {
-        outputFile1 << rep << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << "\n";
+        outputFile1 << rep << ", " << centroid.x << ", " << centroid.y << ", " << hat_width << ", " << system_magnetisation.x << ", " << system_magnetisation.y << "\n";
     }
 }
 
