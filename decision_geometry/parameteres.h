@@ -1,9 +1,9 @@
 //
 //  parameteres.h
-//  multi-choice_decision_geometry
+//  decision_geometry
 //
-//  Created by Vivek Hari Sridhar on 18/09/17.
-//  Copyright © 2017 Vivek Hari Sridhar. All rights reserved.
+//  Created by Vivek Hari Sridhar on 04/12/19.
+//  Copyright © 2019 Vivek Hari Sridhar. All rights reserved.
 //
 
 #ifndef parameteres_h
@@ -12,42 +12,50 @@
 #include "spin.h"
 #include <fstream>
 
-int     timestep_number;    // timestep number
-int     arena_size;
-int     total_agents;
-int     cue_reached;
+// time parameters
+int     num_replicates;
+int     num_timesteps;
+int     timestep_number;
 int     trial_time;
-int     reset_no;
 
+// space parameters
+int     arena_size;
+double  max_angle;
+double  start_dist;
+double  dist_thresh;
+CVec2D  arena_centre;
+
+// system parameters
+int     total_agents;
+double  nu;
 double  system_energy;
 CVec2D  system_magnetisation;
 
-double  left_right_dist;
-double  start_dist;
-double  dist_thresh;
-double  max_angle;
-double  hat_width;
+// run parameters
+int     reset_no;
+int     n_inds_preference[number_of_cues];
+CVec2D  centres[number_of_cues];
 
+// output variables
+int     cue_reached;
 double  path_length;
+CVec2D  centroid;
 
+// boolean switches
 bool    rep_done;
 bool    symmetric;
-bool    distance;
 
-CVec2D  arena_centre;
-CVec2D  centroid;
-CVec2D  centres[number_of_cues];
-int     n_inds_preference[number_of_cues];
-
+// class vectors
 spin*   agent;
 cue*    CS;
 
+// model functions
 int main();
 void RunGeneration();
 void FlipSpins();
 void CalculateSystemProperties(int spin_id);
 void CalculateSpinProperties(double& energy, int spin_id);
-void MoveAgents(int rep);
+void MoveAgents(double temp);
 void SetupSimulation(double temp);
 void SetupEnvironmentSymmetric();
 void SetupEnvironmentAsymmetric();
@@ -55,7 +63,7 @@ void SetupEnvironmentDistances();
 void SetupSpins(double temp);
 void ResetSetup(double x, double y);
 CVec2D RandomBoundedPoint(double x, double y);
-void GenerationalOutput(int rep);
+void GenerationalOutput(double temp);
 
 void Graphics();
 

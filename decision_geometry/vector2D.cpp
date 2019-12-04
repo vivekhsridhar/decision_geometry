@@ -1,9 +1,9 @@
 //
 //  vector2D.cpp
-//  multi-choice_decision_geometry
+//  decision_geometry
 //
-//  Created by Vivek Hari Sridhar on 18/09/17.
-//  Copyright © 2017 Vivek Hari Sridhar. All rights reserved.
+//  Created by Vivek Hari Sridhar on 04/12/19.
+//  Copyright © 2019 Vivek Hari Sridhar. All rights reserved.
 //
 
 #include "vector2D.h"

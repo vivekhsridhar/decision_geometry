@@ -1,9 +1,9 @@
 //
 //  cue.h
-//  multi-choice_decision_geometry
+//  decision_geometry
 //
-//  Created by Vivek Sridhar on 20/09/17.
-//  Copyright © 2017 Vivek Sridhar. All rights reserved.
+//  Created by Vivek Sridhar on 04/12/19.
+//  Copyright © 2019 Vivek Sridhar. All rights reserved.
 //
 
 #ifndef cue_h
