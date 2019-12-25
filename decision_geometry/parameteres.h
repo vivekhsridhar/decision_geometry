@@ -55,7 +55,7 @@ void RunGeneration();
 void FlipSpins();
 void CalculateSystemProperties(int spin_id);
 void CalculateSpinProperties(double& energy, int spin_id);
-void MoveAgents(double temp);
+void MoveAgents(int rep, double temp);
 void SetupSimulation(double temp);
 void SetupEnvironmentSymmetric();
 void SetupEnvironmentAsymmetric();

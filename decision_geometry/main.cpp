@@ -31,8 +31,8 @@ int main()
     rnd::set_seed(seed);
     
     // time parameters
-    num_replicates = 100;
-    num_timesteps = 10000;
+    num_replicates = 5000;
+    num_timesteps = 100000;
     timestep_number = 0;
     trial_time = 0;
     
@@ -40,12 +40,12 @@ int main()
     arena_size = 1000;
     if (number_of_cues == 2) max_angle = Pi/3;
     else max_angle = 4*Pi/9;
-    start_dist = 10000.0;
+    start_dist = 500.0;
     dist_thresh = 10.0;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
     
     // system parameters
-    total_agents = 500;
+    total_agents = 60;
     nu = 1.0;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
@@ -61,7 +61,7 @@ int main()
 
     // boolean switches
     rep_done = false;
-    symmetric = true;
+    symmetric = false;
     
     // class vectors
     agent = new spin[total_agents];
@@ -73,9 +73,9 @@ int main()
     
     // output file headers
     outputFile1 << "temperature" << ", " << "x" << ", " << "y" << ", " << "angular_disagreement" << ", " << "dir_x" << ", " << "dir_y" << "\n";
-    outputFile2 << "temperature" << ", " << "n1" << ", " << "n2" << ", ";
+    outputFile2 << "temperature" << ", " << "replicate" << ", " << "nu" << ", " << "n1" << ", " << "n2" << ", ";
     if (number_of_cues == 3) outputFile2 << "n3" << ", ";
-    outputFile2 << "consensus" << "\n";
+    outputFile2 << "target_reached" << "\n";
     
     //===================================
     //==    functions in the main   =====
@@ -92,33 +92,39 @@ int main()
 
 void RunGeneration()
 {
-    for (double temp = 0.01; temp <= 1.0; )
+    for (nu = 0.2; nu <= 1.0; )
     {
-        SetupSimulation(temp);
-        for (int rep = 0; rep != num_replicates; ++rep)
+        for (double temp = 0.02; temp <= 0.4; )
         {
-            ResetSetup(0, arena_size/2);
-            
-            while (trial_time != num_timesteps)
+            SetupSimulation(temp);
+            for (int rep = 0; rep != num_replicates; ++rep)
             {
-                FlipSpins();
-                MoveAgents(temp);
-                if (trial_time % 10 == 0)
+                ResetSetup(0, arena_size/2);
+                
+                while (trial_time != num_timesteps)
                 {
-                    //Graphics();
-                    GenerationalOutput(temp);
+                    FlipSpins();
+                    MoveAgents(rep, temp);
+                    if (trial_time % 10 == 0)
+                    {
+                        //Graphics();
+                        GenerationalOutput(temp);
+                    }
+                    
+                    ++trial_time;
+                    ++timestep_number;
+                    
+                    // reset agents if target is reached
+                    if (rep_done) break;
                 }
-                
-                ++trial_time;
-                ++timestep_number;
-                
-                // reset agents if target is reached
-                if (rep_done) break;
             }
+            
+            temp += 0.02;
+            std::cout << temp << " ";
         }
         
-        temp += 0.01;
-        std::cout << temp << " ";
+        nu += 0.02;
+        std::cout << nu << "\n";
     }
 }
 
@@ -164,27 +170,29 @@ void CalculateSystemProperties(int spin_id)
     system_magnetisation /= total_agents;
 }
 
-void MoveAgents(double temp)
+void MoveAgents(int rep, double temp)
 {
+    std::fill_n(n_inds_preference, number_of_cues, 0);
     for (int i = 0; i != total_agents; ++i)
     {
         agent[i].position += system_magnetisation;
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
+        n_inds_preference[agent[i].GetInformed()] += agent[i].state;
     }
     
     for (int i = 0; i != number_of_cues; ++i)
     {
-        if (centroid.distanceTo(CS[i].centre) < dist_thresh * dist_thresh || trial_time == num_timesteps - 1)
+        if (centroid.distanceTo(CS[i].centre) < dist_thresh * dist_thresh)
         {
             rep_done = true;
             cue_reached = i;
             
-            outputFile2 << temp << ", ";
+            outputFile2 << temp << ", " << rep << ", " << nu << ", ";
             for (int j = 0; j != number_of_cues; ++j)
             {
                 outputFile2 << n_inds_preference[j] << ", ";
             }
-            outputFile2 << system_magnetisation.x << "\n";
+            outputFile2 << i << "\n";
         }
     }
     
