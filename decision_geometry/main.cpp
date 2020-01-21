@@ -45,7 +45,7 @@ int main()
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
     
     // system parameters
-    total_agents = 60;
+    total_agents = 61;
     nu = 1.0;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
@@ -72,10 +72,10 @@ int main()
     outputFile2 = std::ofstream("cue_reached.csv");
     
     // output file headers
-    outputFile1 << "temperature" << ", " << "x" << ", " << "y" << ", " << "angular_disagreement" << ", " << "dir_x" << ", " << "dir_y" << "\n";
+    outputFile1 << "temperature" << ", " << "nu" << ", " << "x" << ", " << "y" << ", " << "angular_disagreement" << ", " << "dir_x" << ", " << "dir_y" << "\n";
     outputFile2 << "temperature" << ", " << "replicate" << ", " << "nu" << ", " << "n1" << ", " << "n2" << ", ";
     if (number_of_cues == 3) outputFile2 << "n3" << ", ";
-    outputFile2 << "target_reached" << "\n";
+    outputFile2 << "target_reached" << ", " << "path_length" << ", " << "trial_time" << "\n";
     
     //===================================
     //==    functions in the main   =====
@@ -119,12 +119,12 @@ void RunGeneration()
                 }
             }
             
-            temp += 0.02;
             std::cout << temp << " ";
+            temp += 0.02;
         }
         
-        nu += 0.02;
         std::cout << nu << "\n";
+        nu += 0.04;
     }
 }
 
@@ -192,7 +192,7 @@ void MoveAgents(int rep, double temp)
             {
                 outputFile2 << n_inds_preference[j] << ", ";
             }
-            outputFile2 << i << "\n";
+            outputFile2 << i << ", " << path_length << ", " << trial_time << "\n";
         }
     }
     
@@ -267,6 +267,7 @@ void SetupSpins(double temp)
         else set_state = true;
             
         set_informed = i % number_of_cues;
+        if (i == 60) set_informed = 1;
         ++n_inds_preference[set_informed];
             
         set_temperature = temp;
@@ -286,6 +287,7 @@ void ResetSetup(double x, double y)
         else agent[i].state = true;
         
         int info = i % number_of_cues;
+        if (i == 60) info = 1;
         agent[i].SetInformed(info);
         agent[i].preference = CVec2D(0.0, 0.0);
     }
@@ -323,7 +325,7 @@ void GenerationalOutput(double temp)
     v1 = (CS[0].centre - centroid).normalise();
     v2 = (CS[number_of_cues-1].centre - centroid).normalise();
     
-    outputFile1 << temp << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << "\n";
+    outputFile1 << temp << ", " << nu << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << "\n";
 }
 
 //**************************************************************************************************
