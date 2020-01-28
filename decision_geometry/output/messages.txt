@@ -1,3 +1,2 @@
-Mon Jan 20 10:00:18 2020 : simulation started
-Mon Jan 20 10:00:18 2020 : random seed set to 2317709438
-Tue Jan 21 12:21:43 2020 : simulation ended
+Tue Jan 28 11:07:17 2020 : simulation started
+Tue Jan 28 11:07:17 2020 : random seed set to 3591327326

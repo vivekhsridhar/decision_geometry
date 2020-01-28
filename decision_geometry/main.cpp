@@ -38,15 +38,19 @@ int main()
     
     // space parameters
     arena_size = 1000;
-    if (number_of_cues == 2) max_angle = Pi/3;
-    else max_angle = 4*Pi/9;
+    if (number_of_cues == 2) max_angle = PI/3;
+    else max_angle = 4*PI/9;
     start_dist = 500.0;
     dist_thresh = 10.0;
+    overlap_sd = PI/18;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
     
     // system parameters
-    total_agents = 61;
+    total_agents = 30;
     nu = 1.0;
+    A = 1.8;
+    h = 0.25;
+    c = 1.0;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
@@ -72,8 +76,8 @@ int main()
     outputFile2 = std::ofstream("cue_reached.csv");
     
     // output file headers
-    outputFile1 << "temperature" << ", " << "nu" << ", " << "x" << ", " << "y" << ", " << "angular_disagreement" << ", " << "dir_x" << ", " << "dir_y" << "\n";
-    outputFile2 << "temperature" << ", " << "replicate" << ", " << "nu" << ", " << "n1" << ", " << "n2" << ", ";
+    outputFile1 << "temperature" << ", " << "h" << ", " << "x" << ", " << "y" << ", " << "angular_disagreement" << ", " << "dir_x" << ", " << "dir_y" << "\n";
+    outputFile2 << "temperature" << ", " << "replicate" << ", " << "h" << ", " << "n1" << ", " << "n2" << ", ";
     if (number_of_cues == 3) outputFile2 << "n3" << ", ";
     outputFile2 << "target_reached" << ", " << "path_length" << ", " << "trial_time" << "\n";
     
@@ -92,9 +96,9 @@ int main()
 
 void RunGeneration()
 {
-    for (nu = 0.2; nu <= 1.0; )
+    for (h = 0.1; h < 0.8; )
     {
-        for (double temp = 0.02; temp <= 0.4; )
+        for (double temp = 0.02; temp < 0.3; )
         {
             SetupSimulation(temp);
             for (int rep = 0; rep != num_replicates; ++rep)
@@ -123,8 +127,8 @@ void RunGeneration()
             temp += 0.02;
         }
         
-        std::cout << nu << "\n";
-        nu += 0.04;
+        std::cout << h << "\n";
+        h += 0.04;
     }
 }
 
@@ -151,9 +155,11 @@ void CalculateSystemProperties(int spin_id)
     for (int i = 0; i != total_agents; ++i)
     {
         double ang = agent[spin_id].preference.smallestAngleTo(agent[i].preference) * PiOver180;
-        ang = PI * pow(ang / PI, nu);
         
-        double J = cos(ang);
+        //ang = PI * pow(ang / PI, nu);
+        //double J = cos(ang);
+        double J = A*(1 - h * ang * ang) * exp(-h * ang * ang) - c;
+        
         if (i != spin_id) system_energy -=  J * agent[spin_id].state * agent[i].state;
     }
     system_energy /= total_agents;
@@ -187,7 +193,7 @@ void MoveAgents(int rep, double temp)
             rep_done = true;
             cue_reached = i;
             
-            outputFile2 << temp << ", " << rep << ", " << nu << ", ";
+            outputFile2 << temp << ", " << rep << ", " << h << ", ";
             for (int j = 0; j != number_of_cues; ++j)
             {
                 outputFile2 << n_inds_preference[j] << ", ";
@@ -254,6 +260,7 @@ void SetupSpins(double temp)
     CVec2D set_preference;
     int set_informed;
     bool set_state;
+    bool set_picked;
         
     double set_temperature;
     
@@ -265,14 +272,15 @@ void SetupSpins(double temp)
             
         if (rnd::uniform() < 0.5) set_state = false;
         else set_state = true;
-            
+        
         set_informed = i % number_of_cues;
         if (i == 60) set_informed = 1;
         ++n_inds_preference[set_informed];
             
+        set_picked = true;
         set_temperature = temp;
             
-        agent[i].Setup(set_position, set_temperature, set_informed, set_state);
+        agent[i].Setup(set_position, set_temperature, set_informed, set_state, set_picked);
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
     }
 }
@@ -290,6 +298,7 @@ void ResetSetup(double x, double y)
         if (i == 60) info = 1;
         agent[i].SetInformed(info);
         agent[i].preference = CVec2D(0.0, 0.0);
+        agent[i].picked = true;
     }
     
     if (symmetric) SetupEnvironmentSymmetric();
@@ -325,7 +334,7 @@ void GenerationalOutput(double temp)
     v1 = (CS[0].centre - centroid).normalise();
     v2 = (CS[number_of_cues-1].centre - centroid).normalise();
     
-    outputFile1 << temp << ", " << nu << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << "\n";
+    outputFile1 << temp << ", " << h << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << "\n";
 }
 
 //**************************************************************************************************

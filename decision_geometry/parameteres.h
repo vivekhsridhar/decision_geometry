@@ -23,11 +23,15 @@ int     arena_size;
 double  max_angle;
 double  start_dist;
 double  dist_thresh;
+double  overlap_sd;
 CVec2D  arena_centre;
 
 // system parameters
 int     total_agents;
 double  nu;
+double  A;
+double  h;
+double  c;
 double  system_energy;
 CVec2D  system_magnetisation;
 

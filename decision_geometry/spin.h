@@ -17,7 +17,7 @@ public:
     spin(void);
     ~spin(void);
     
-    void Setup(const CVec2D& set_position, double& set_temperature, int& set_informed, bool& set_state);
+    void Setup(const CVec2D& set_position, double& set_temperature, int& set_informed, bool& set_state, bool& set_picked);
     void AddPreference(CVec2D& cue_centre);
     int GetInformed();
     void SetInformed(int& informed);
@@ -26,6 +26,7 @@ public:
     CVec2D position;
     CVec2D preference;
     bool state;
+    bool picked;
     
     double temperature;
 private:
