@@ -23,6 +23,7 @@ int     arena_size;
 double  max_angle;
 double  start_dist;
 double  dist_thresh;
+double  overlap_sd;
 CVec2D  arena_centre;
 
 // system parameters

@@ -16,11 +16,12 @@ spin::~spin(void)
 {
 }
 
-void spin::Setup(const CVec2D& set_position, double& set_temperature, int& set_informed, bool& set_state)
+void spin::Setup(const CVec2D& set_position, double& set_temperature, int& set_informed, bool& set_state, bool& set_picked)
 {
     position = set_position;
     informed = set_informed;
     state = set_state;
+    picked = set_picked;
     
     temperature = set_temperature;
 }
@@ -45,5 +46,6 @@ void spin::Copy(spin& source)
     preference = source.preference;
     informed = source.informed;
     state = source.state;
+    picked = source.picked;
     temperature = source.temperature;
 }
