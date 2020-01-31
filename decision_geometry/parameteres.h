@@ -28,6 +28,9 @@ CVec2D  arena_centre;
 // system parameters
 int     total_agents;
 double  nu;
+double  A;
+double  h;
+double  c;
 double  system_energy;
 CVec2D  system_magnetisation;
 
@@ -63,7 +66,6 @@ void SetupEnvironmentDistances();
 void SetupSpins(double temp);
 void ResetSetup(double x, double y);
 CVec2D RandomBoundedPoint(double x, double y);
-void GenerationalOutput(double temp);
 
 void Graphics();
 

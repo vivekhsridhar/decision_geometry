@@ -16,7 +16,6 @@ using namespace rnd;
 using namespace cv;
 
 std::ofstream outputFile1;
-std::ofstream outputFile2;
 
 //**************************************************************************************************
 //**    MAIN    ************************************************************************************
@@ -47,6 +46,9 @@ int main()
     // system parameters
     total_agents = 61;
     nu = 1.0;
+    A = 1.8;
+    h = 0.25;
+    c = 1.0;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
@@ -68,14 +70,10 @@ int main()
     CS = new cue[number_of_cues];
     
     // open output files
-    outputFile1 = std::ofstream("geometry.csv");
-    outputFile2 = std::ofstream("cue_reached.csv");
+    outputFile1 = std::ofstream("cue_reached.csv");
     
     // output file headers
-    outputFile1 << "temperature" << ", " << "nu" << ", " << "x" << ", " << "y" << ", " << "angular_disagreement" << ", " << "dir_x" << ", " << "dir_y" << "\n";
-    outputFile2 << "temperature" << ", " << "replicate" << ", " << "nu" << ", " << "n1" << ", " << "n2" << ", ";
-    if (number_of_cues == 3) outputFile2 << "n3" << ", ";
-    outputFile2 << "target_reached" << ", " << "path_length" << ", " << "trial_time" << "\n";
+    outputFile1 << "temperature" << ", " << "replicate" << ", " << "h" << ", " << "preferred_target" << ", " << "reached_target" << ", " << "path_length" << ", " << "trial_time" << "\n";
     
     //===================================
     //==    functions in the main   =====
@@ -92,9 +90,9 @@ int main()
 
 void RunGeneration()
 {
-    for (nu = 0.2; nu <= 1.0; )
+    for (h = 0.1; h < 0.8; )
     {
-        for (double temp = 0.02; temp <= 0.4; )
+        for (double temp = 0.02; temp <= 0.3; )
         {
             SetupSimulation(temp);
             for (int rep = 0; rep != num_replicates; ++rep)
@@ -108,7 +106,6 @@ void RunGeneration()
                     if (trial_time % 10 == 0)
                     {
                         //Graphics();
-                        GenerationalOutput(temp);
                     }
                     
                     ++trial_time;
@@ -123,8 +120,8 @@ void RunGeneration()
             temp += 0.02;
         }
         
-        std::cout << nu << "\n";
-        nu += 0.04;
+        std::cout << h << "\n";
+        h += 0.04;
     }
 }
 
@@ -151,9 +148,11 @@ void CalculateSystemProperties(int spin_id)
     for (int i = 0; i != total_agents; ++i)
     {
         double ang = agent[spin_id].preference.smallestAngleTo(agent[i].preference) * PiOver180;
-        ang = PI * pow(ang / PI, nu);
         
-        double J = cos(ang);
+        //ang = PI * pow(ang / PI, nu);
+        //double J = cos(ang);
+        double J = A * (1 - h * ang * ang) * exp(-h * ang * ang) - c;
+        
         if (i != spin_id) system_energy -=  J * agent[spin_id].state * agent[i].state;
     }
     system_energy /= total_agents;
@@ -187,12 +186,7 @@ void MoveAgents(int rep, double temp)
             rep_done = true;
             cue_reached = i;
             
-            outputFile2 << temp << ", " << rep << ", " << nu << ", ";
-            for (int j = 0; j != number_of_cues; ++j)
-            {
-                outputFile2 << n_inds_preference[j] << ", ";
-            }
-            outputFile2 << i << ", " << path_length << ", " << trial_time << "\n";
+            outputFile1 << temp << ", " << rep << ", " << h << ", " << agent[total_agents-1].GetInformed() << ", " << i << ", " << path_length << ", " << trial_time << "\n";
         }
     }
     
@@ -267,7 +261,7 @@ void SetupSpins(double temp)
         else set_state = true;
             
         set_informed = i % number_of_cues;
-        if (i == 60) set_informed = 1;
+        if (i == (total_agents-1)) set_informed = rnd::integer(number_of_cues);
         ++n_inds_preference[set_informed];
             
         set_temperature = temp;
@@ -287,7 +281,7 @@ void ResetSetup(double x, double y)
         else agent[i].state = true;
         
         int info = i % number_of_cues;
-        if (i == 60) info = 1;
+        if (i == (total_agents-1)) info = rnd::integer(number_of_cues);
         agent[i].SetInformed(info);
         agent[i].preference = CVec2D(0.0, 0.0);
     }
@@ -312,20 +306,6 @@ CVec2D RandomBoundedPoint(double x, double y)
     if (symmetric) random_point = arena_centre;
     
     return random_point;
-}
-
-//**************************************************************************************************
-//**    OUTPUT  ************************************************************************************
-//**************************************************************************************************
-
-void GenerationalOutput(double temp)
-{
-    CVec2D v1;
-    CVec2D v2;
-    v1 = (CS[0].centre - centroid).normalise();
-    v2 = (CS[number_of_cues-1].centre - centroid).normalise();
-    
-    outputFile1 << temp << ", " << nu << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << ", " << system_magnetisation.x << ", " << system_magnetisation.y << "\n";
 }
 
 //**************************************************************************************************
