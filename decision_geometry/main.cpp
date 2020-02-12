@@ -38,7 +38,7 @@ int main()
     // space parameters
     arena_size = 1000;
     if (number_of_cues == 2) max_angle = Pi/3;
-    else max_angle = 4*Pi/9;
+    else max_angle = 6*Pi/9;
     start_dist = 500.0;
     dist_thresh = 10.0;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
@@ -73,7 +73,7 @@ int main()
     outputFile1 = std::ofstream("cue_reached.csv");
     
     // output file headers
-    outputFile1 << "temperature" << ", " << "replicate" << ", " << "h" << ", " << "preferred_target" << ", " << "reached_target" << ", " << "path_length" << ", " << "trial_time" << "\n";
+    outputFile1 << "temperature" << ", " << "replicate" << ", " << "nu" << ", " << "preferred_target" << ", " << "reached_target" << ", " << "path_length" << ", " << "trial_time" << "\n";
     
     //===================================
     //==    functions in the main   =====
@@ -90,7 +90,7 @@ int main()
 
 void RunGeneration()
 {
-    for (h = 0.1; h < 0.8; )
+    for (nu = 0.2; nu < 1.0; )
     {
         for (double temp = 0.02; temp <= 0.3; )
         {
@@ -120,8 +120,8 @@ void RunGeneration()
             temp += 0.02;
         }
         
-        std::cout << h << "\n";
-        h += 0.04;
+        std::cout << nu << "\n";
+        nu += 0.04;
     }
 }
 
@@ -149,9 +149,9 @@ void CalculateSystemProperties(int spin_id)
     {
         double ang = agent[spin_id].preference.smallestAngleTo(agent[i].preference) * PiOver180;
         
-        //ang = PI * pow(ang / PI, nu);
-        //double J = cos(ang);
-        double J = A * (1 - h * ang * ang) * exp(-h * ang * ang) - c;
+        ang = PI * pow(ang / PI, nu);
+        double J = cos(ang);
+        //double J = A * (1 - h * ang * ang) * exp(-h * ang * ang) - c;
         
         if (i != spin_id) system_energy -=  J * agent[spin_id].state * agent[i].state;
     }
@@ -186,7 +186,7 @@ void MoveAgents(int rep, double temp)
             rep_done = true;
             cue_reached = i;
             
-            outputFile1 << temp << ", " << rep << ", " << h << ", " << agent[total_agents-1].GetInformed() << ", " << i << ", " << path_length << ", " << trial_time << "\n";
+            outputFile1 << temp << ", " << rep << ", " << nu << ", " << agent[total_agents-1].GetInformed() << ", " << i << ", " << path_length << ", " << trial_time << "\n";
         }
     }
     
