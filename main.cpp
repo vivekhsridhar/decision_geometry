@@ -38,18 +38,18 @@ int main()
     // space parameters
     arena_size = 1000;
     if (number_of_cues == 2) max_angle = PI/3;
-    else max_angle = 4*PI/9;
+    else max_angle = 6*PI/9;
     start_dist = 500.0;
     dist_thresh = 10.0;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
     
     // system parameters
-    total_agents = 60;
+    total_agents = 30;
     nu = 0.6;
     A = 1.8;
     h = 0.25;
     c = 1.0;
-    dev = 0.25;
+    dev = 0.0;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
@@ -141,11 +141,11 @@ void CalculateSystemProperties(int spin_id)
     {
         double ang = agent[spin_id].preference.smallestAngleTo(agent[i].preference) * PiOver180;
         
-        ang = PI * pow(ang / PI, nu);
-        double J = cos(ang);
-        //double J = A * (1 - h * ang * ang) * exp(-h * ang * ang) - c;
+        //ang = PI * pow(ang / PI, nu);
+        //double J = cos(ang);
+        double J = A * (1 - h * ang * ang) * exp(-h * ang * ang) - c;
         
-        if (i != spin_id) system_energy -=  J * agent[spin_id].state * agent[i].state * agent[spin_id].picked * agent[i].picked;
+        if (i != spin_id) system_energy -=  J * agent[spin_id].state * agent[i].state;
     }
     system_energy /= total_agents;
     
@@ -171,18 +171,17 @@ void MoveAgents(int rep, double temp)
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
         n_inds_preference[agent[i].GetInformed()] += agent[i].state;
         
-        double summation = 0.0;
+        //double summation = 0.0;
         for (int j = 0; j != number_of_cues; ++j)
         {
-            agent[i].GetDeviation(CS[j].centre, j);
-            agent[i].probabilities[j] = GetProbability(agent[i].deviations[j], 0.0, dev);
-            summation += agent[i].probabilities[j];
+            //agent[i].GetDeviation(CS[j].centre, j);
+            //agent[i].probabilities[j] = GetProbability(agent[i].deviations[j], 0.0, dev);
+            //summation += agent[i].probabilities[j];
         }
         
-        for (int j = 0; j != number_of_cues; ++j) agent[i].probabilities[j] /= summation;
+        //for (int j = 0; j != number_of_cues; ++j) agent[i].probabilities[j] /= summation;
         
-        if (rnd::uniform() < agent[i].probabilities[agent[i].GetInformed()]) agent[i].picked = true;
-        else agent[i].picked = false;
+        //if (rnd::uniform() < agent[i].probabilities[agent[i].GetInformed()]) agent[i].picked = false;
     }
     
     for (int i = 0; i != number_of_cues; ++i)
@@ -292,6 +291,9 @@ void ResetSetup(double x, double y)
         agent[i].preference = CVec2D(0.0, 0.0);
         agent[i].prime_deviation = rnd::normal(0.0, dev);
     }
+    
+    if (symmetric) SetupEnvironmentSymmetric();
+    else SetupEnvironmentAsymmetric();
     
     trial_time = 0;
     path_length = 0.0;

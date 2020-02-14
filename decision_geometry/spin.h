@@ -17,8 +17,9 @@ public:
     spin(void);
     ~spin(void);
     
-    void Setup(const CVec2D& set_position, double& set_temperature, int& set_informed, bool& set_state);
+    void Setup(const CVec2D& set_position, double& set_temperature, int& set_informed, bool& set_state, double& set_deviation, bool& set_picked);
     void AddPreference(CVec2D& cue_centre);
+    void GetDeviation(CVec2D& cue_centre, int cue_id);
     int GetInformed();
     void SetInformed(int& informed);
     void Copy(spin& source);
@@ -26,8 +27,13 @@ public:
     CVec2D position;
     CVec2D preference;
     bool state;
+    bool picked;
     
     double temperature;
+    double prime_deviation;
+    double deviations[number_of_cues];
+    double probabilities[number_of_cues];   // probability this spin is picked based on the deviations
+    
 private:
     int informed;
 };
