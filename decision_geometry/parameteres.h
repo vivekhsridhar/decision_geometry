@@ -17,6 +17,7 @@ int     num_replicates;
 int     num_timesteps;
 int     timestep_number;
 int     trial_time;
+int     equilibration_time;
 
 // space parameters
 int     arena_size;
@@ -33,18 +34,20 @@ double  A;
 double  h;
 double  c;
 double  dev;
+double  temp_rescale;
 double  system_energy;
+double  test_energy;
 CVec2D  system_magnetisation;
 
 // run parameters
 int     reset_no;
 int     n_inds_preference[number_of_cues];
-double  pdf[number_of_cues];
 CVec2D  centres[number_of_cues];
 
 // output variables
 int     cue_reached;
 double  path_length;
+double  susceptibility;
 CVec2D  centroid;
 
 // boolean switches
@@ -53,19 +56,25 @@ bool    symmetric;
 
 // class vectors
 spin*   agent;
+spin*   test;
 cue*    CS;
 
 // model functions
 int main();
 void RunGeneration();
 void FlipSpins();
+void FlipTest();
 void CalculateSystemProperties(int spin_id);
-void MoveAgents(int rep, double temp);
+void CalculateTestProperties(int spin_id);
+void CalculateSusceptibility();
+void MoveAgents();
+void MoveTest();
 void SetupSimulation(double temp);
 void SetupEnvironmentSymmetric();
 void SetupEnvironmentAsymmetric();
 void SetupSpins(double temp);
 void ResetSetup(double x, double y);
+void ResetTest(double x, double y);
 CVec2D RandomBoundedPoint(double x, double y);
 double GetProbability(double x, double mu, double sigma);
 
