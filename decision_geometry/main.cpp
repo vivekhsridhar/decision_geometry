@@ -31,7 +31,7 @@ int main()
     
     // time parameters
     num_replicates = 500;
-    num_timesteps = 10000;
+    num_timesteps = 100000;
     timestep_number = 0;
     trial_time = 0;
     equilibration_time = 1000;
@@ -46,14 +46,13 @@ int main()
     
     // system parameters
     total_agents = 60;
-    nu = 0.6;
+    nu = 0.5;
     A = 1.8;
     h = 0.25;
     c = 1.0;
-    dev = 0.02;
+    dev = 0.25;
     temp_rescale = 0.5;
     system_energy = 0.0;
-    test_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
     // run parameters
@@ -63,7 +62,6 @@ int main()
     // output variables
     cue_reached = -1;
     path_length = 0.0;
-    susceptibility = 0.0;
     centroid = CVec2D(0.0,0.0);
 
     // boolean switches
@@ -72,14 +70,15 @@ int main()
     
     // class vectors
     agent = new spin[total_agents];
-    test = new spin[total_agents];
     CS = new cue[number_of_cues];
+    preference = new CVec2D[total_agents+1];
+    state = new bool[total_agents+1];
     
     // open output files
     outputFile1 = std::ofstream("geometry.csv");
     
     // output file headers
-    outputFile1 << "x" << ", " << "y" << ", " << "n1" << ", " << "n2" << ", " << "susceptibility" << ", " << "angle" << "\n";
+    outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "susceptibility" << "\n";
     
     //===================================
     //==    functions in the main   =====
@@ -104,18 +103,15 @@ void RunGeneration()
         
         while (trial_time != num_timesteps)
         {
-            FlipSpins();
-            MoveAgents();
-            
-            if (trial_time % 10 == 0)
+            FlipSpins(false);
+            MoveAgents(temp);
+            if (trial_time % 10 == 0 && trial_time != 0)
             {
-                ResetTest(0, arena_size/2);
+                ResetStates();
+                for (int i = 0; i != equilibration_time; ++i) FlipSpins(true);
+                CalculateMagnetisation();
                 
-                for (int i = 0; i != equilibration_time; ++i)
-                {
-                    FlipTest();
-                    MoveTest();
-                }
+                //Graphics();
                 GenerationOutput(rep);
             }
             
@@ -126,40 +122,42 @@ void RunGeneration()
             if (rep_done) break;
         }
         
-        if (rep % 100 == 0) std::cout << rep << " ";
+        if (rep % 10 == 0) std::cout << rep << " ";
     }
 }
 
-void FlipSpins()
+void FlipSpins(bool test)
 {
-    int id = rnd::integer(total_agents);
-    CalculateSystemProperties(id);
-    double before = system_energy;
-    agent[id].state = !agent[id].state;
-    CalculateSystemProperties(id);
-    double after = system_energy;
-    
-    double p_accept = 0.0;
-    if (before < after) p_accept = exp(-(after - before) / (temp_rescale * agent[id].temperature));
-    else p_accept = 1.0;
-    
-    if (rnd::uniform() >= p_accept) agent[id].state = !agent[id].state;
-}
-
-void FlipTest()
-{
-    int id = rnd::integer(total_agents);
-    CalculateTestProperties(id);
-    double before = test_energy;
-    test[id].state = !test[id].state;
-    CalculateTestProperties(id);
-    double after = test_energy;
-    
-    double p_accept = 0.0;
-    if (before < after) p_accept = exp(-(after - before) / (temp_rescale * test[id].temperature));
-    else p_accept = 1.0;
-    
-    if (rnd::uniform() >= p_accept) test[id].state = !test[id].state;
+    if (test)
+    {
+        int id = rnd::integer(total_agents+1);
+        CalculateEnergy(id);
+        double before = energy;
+        state[id] = !state[id];
+        CalculateEnergy(id);
+        double after = energy;
+        
+        double p_accept = 0.0;
+        if (before < after) p_accept = exp(-(after - before) / (temp_rescale * agent[0].temperature));
+        else p_accept = 1.0;
+        
+        if (rnd::uniform() >= p_accept) state[id] = !state[id];
+    }
+    else
+    {
+        int id = rnd::integer(total_agents);
+        CalculateSystemProperties(id);
+        double before = system_energy;
+        agent[id].state = !agent[id].state;
+        CalculateSystemProperties(id);
+        double after = system_energy;
+        
+        double p_accept = 0.0;
+        if (before < after) p_accept = exp(-(after - before) / (temp_rescale * agent[id].temperature));
+        else p_accept = 1.0;
+        
+        if (rnd::uniform() >= p_accept) agent[id].state = !agent[id].state;
+    }
 }
 
 void CalculateSystemProperties(int spin_id)
@@ -181,54 +179,24 @@ void CalculateSystemProperties(int spin_id)
     // calculate magnetisation
     centroid = CVec2D(0.0, 0.0);
     system_magnetisation = CVec2D(0.0, 0.0);
-    
-    int total = 0;
     for (int i = 0; i != total_agents; ++i)
     {
         centroid += agent[i].position;
-        system_magnetisation += agent[i].preference * agent[i].state * agent[i].picked;
-        
-        total += agent[i].picked;
+        system_magnetisation += agent[i].preference * agent[i].state;
     }
     centroid /= total_agents;
-    system_magnetisation /= total;
+    system_magnetisation /= total_agents;
 }
 
-void CalculateTestProperties(int spin_id)
+void MoveAgents(double temp)
 {
-    // calculate energy
-    test_energy = 0.0;
-    for (int i = 0; i != total_agents; ++i)
-    {
-        double ang = test[spin_id].preference.smallestAngleTo(test[i].preference) * PiOver180;
-        
-        ang = PI * pow(ang / PI, nu);
-        double J = cos(ang);
-        //double J = A * (1 - h * ang * ang) * exp(-h * ang * ang) - c;
-        
-        if (i != spin_id) test_energy -=  J * test[spin_id].state * test[i].state * test[spin_id].picked * test[i].picked;
-    }
-    test_energy /= total_agents;
-}
-
-void CalculateSusceptibility()
-{
-    susceptibility = 0.0;
-    for (int i = 0; i != total_agents; ++i)
-    {
-        if (test[i].GetInformed() == 0) susceptibility += (test[i].state * test[i].picked);
-        else susceptibility -= (test[i].state * test[i].picked);
-    }
-    susceptibility += (total_agents/number_of_cues * (number_of_cues-1));
-    susceptibility /= total_agents;
-}
-
-void MoveAgents()
-{
+    std::fill_n(n_inds_preference, number_of_cues, 0);
+    
     for (int i = 0; i != total_agents; ++i)
     {
         agent[i].position += system_magnetisation;
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
+        n_inds_preference[agent[i].GetInformed()] += agent[i].state;
         
         double summation = 0.0;
         for (int j = 0; j != number_of_cues; ++j)
@@ -256,27 +224,27 @@ void MoveAgents()
     path_length += system_magnetisation.length();
 }
 
-void MoveTest()
+void CalculateEnergy(int spin_id)
 {
-    for (int i = 0; i != total_agents; ++i)
+    energy = 0.0;
+    for (int i = 0; i != total_agents+1; ++i)
     {
-        test[i].position = agent[i].position;
-        test[i].AddPreference(CS[test[i].GetInformed()].centre);
-        CalculateSusceptibility();
+        double ang = preference[spin_id].smallestAngleTo(preference[i]) * PiOver180;
         
-        double summation = 0.0;
-        for (int j = 0; j != number_of_cues; ++j)
-        {
-            test[i].GetDeviation(CS[j].centre, j);
-            test[i].probabilities[j] = GetProbability(test[i].deviations[j], 0.0, dev);
-            summation += test[i].probabilities[j];
-        }
+        ang = PI * pow(ang / PI, nu);
+        double J = cos(ang);
+        //double J = A * (1 - h * ang * ang) * exp(-h * ang * ang) - c;
         
-        for (int j = 0; j != number_of_cues; ++j) test[i].probabilities[j] /= summation;
-        
-        if (rnd::uniform() < test[i].probabilities[test[i].GetInformed()]) test[i].picked = true;
-        else test[i].picked = false;
+        if (i != spin_id) energy -=  J * state[spin_id] * state[i];
     }
+    energy /= (total_agents+1);
+}
+
+void CalculateMagnetisation()
+{
+    magnetisation = CVec2D(0.0, 0.0);
+    for (int i = 0; i != total_agents+1; ++i) magnetisation += preference[i] * state[i];
+    magnetisation /= (total_agents+1);
 }
 
 //**************************************************************************************************
@@ -355,21 +323,18 @@ void SetupSpins(double temp)
         set_temperature = temp;
         set_deviation = rnd::normal(0.0, dev);
             
-        //if (i != total_agents)
-        //{
-            agent[i].Setup(set_position, set_temperature, set_informed, set_state, set_deviation, set_picked);
-            agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
-        //}
+        agent[i].Setup(set_position, set_temperature, set_informed, set_state, set_deviation, set_picked);
+        agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
         
-        test[i].Setup(set_position, set_temperature, set_informed, set_state, set_deviation, set_picked);
-        test[i].AddPreference(CS[test[i].GetInformed()].centre);
+        preference[i] = agent[i].preference;
+        state[i] = agent[i].state;
     }
+    preference[total_agents] = (CS[0].centre - centroid).normalise();
+    state[total_agents] = true;
 }
 
 void ResetSetup(double x, double y)
 {
-    std::fill_n(n_inds_preference, number_of_cues, 0);
-    
     for(int i = 0; i != total_agents; ++i)
     {
         agent[i].position = RandomBoundedPoint(x, y);
@@ -379,11 +344,14 @@ void ResetSetup(double x, double y)
         
         int info = i % number_of_cues;
         agent[i].SetInformed(info);
-        ++n_inds_preference[info];
-        
         agent[i].preference = CVec2D(0.0, 0.0);
         agent[i].prime_deviation = rnd::normal(0.0, dev);
+        
+        preference[i] = agent[i].preference;
+        state[i] = agent[i].state;
     }
+    preference[total_agents] = (CS[rnd::integer(number_of_cues)].centre - centroid).normalise();
+    state[total_agents] = true;
     
     trial_time = 0;
     path_length = 0.0;
@@ -393,25 +361,15 @@ void ResetSetup(double x, double y)
     rep_done = false;
 }
 
-void ResetTest(double x, double y)
+void ResetStates()
 {
-    std::fill_n(n_inds_preference, number_of_cues, 0);
-    
-    for(int i = 0; i != total_agents; ++i)
+    for (int i = 0; i != total_agents; ++i)
     {
-        if (i != total_agents) test[i].position = agent[i].position;
-        else test[i].position = RandomBoundedPoint(centroid.x, centroid.y);
-        
-        if (rnd::uniform() < 0.5) test[i].state = false;
-        else test[i].state = true;
-        
-        int info = i % number_of_cues;
-        test[i].SetInformed(info);
-        ++n_inds_preference[info];
-        
-        test[i].preference = CVec2D(0.0, 0.0);
-        test[i].prime_deviation = rnd::normal(0.0, dev);
+        preference[i] = agent[i].preference;
+        state[i] = agent[i].state;
     }
+    preference[total_agents] = (CS[0].centre - centroid).normalise();
+    state[total_agents] = true;
 }
 
 CVec2D RandomBoundedPoint(double x, double y)
@@ -442,15 +400,10 @@ void GenerationOutput(int rep)
 {
     CVec2D v1;
     CVec2D v2;
-    v1 = (CS[0].centre - CVec2D(centroid.x,centroid.y)).normalise();
-    v2 = (CS[number_of_cues-1].centre - CVec2D(centroid.x,centroid.y)).normalise();
+    v1 = system_magnetisation.normalise();
+    v2 = magnetisation.normalise();
     
-    outputFile1 << centroid.x << ", " << centroid.y << ", ";
-    for (int i = 0; i != number_of_cues; ++i)
-    {
-        outputFile1 << n_inds_preference[i] << ", ";
-    }
-    outputFile1 << susceptibility << ", " << v1.smallestAngleTo(v2) << "\n";
+    outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << "\n";
 }
 
 //**************************************************************************************************
