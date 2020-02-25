@@ -46,7 +46,7 @@ int main()
     
     // system parameters
     total_agents = 60;
-    nu = 0.5;
+    nu = 0.6;
     A = 1.8;
     h = 0.25;
     c = 1.0;

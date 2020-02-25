@@ -29,7 +29,7 @@
 
 /* Begin PBXFileReference section */
 		85D65D1421F9D3A200384BF0 /* decision_geometry */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = decision_geometry; sourceTree = BUILT_PRODUCTS_DIR; };
-		85D65D1721F9D3A200384BF0 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		85D65D1721F9D3A200384BF0 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; wrapsLines = 1; };
 		85D65D1E21F9D3D100384BF0 /* spin.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = spin.cpp; sourceTree = "<group>"; };
 		85D65D1F21F9D3D100384BF0 /* parameteres.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parameteres.h; sourceTree = "<group>"; };
 		85D65D2021F9D3D100384BF0 /* spin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = spin.h; sourceTree = "<group>"; };
