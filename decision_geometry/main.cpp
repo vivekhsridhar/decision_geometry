@@ -29,9 +29,15 @@ int main()
     unsigned seed = static_cast<unsigned>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     rnd::set_seed(seed);
     
+    // boolean switches
+    rep_done = false;
+    symmetric = false;
+    distance = true;
+    assert(symmetric == false || distance == false);
+    
     // time parameters
-    num_replicates = 500;
-    num_timesteps = 100000;
+    num_replicates = 50;
+    num_timesteps = 10000;
     timestep_number = 0;
     trial_time = 0;
     equilibration_time = 1000;
@@ -40,17 +46,20 @@ int main()
     arena_size = 1000;
     if (number_of_cues == 2) max_angle = PI/3;
     else max_angle = 4*PI/9;
-    start_dist = 500.0;
+    
+    if (distance) start_dist = 100.0;
+    else start_dist = 500.0;
     dist_thresh = 10.0;
+    left_right_dist = 500.0;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
     
     // system parameters
     total_agents = 60;
-    nu = 0.6;
+    nu = 0.54;
     A = 1.8;
     h = 0.25;
     c = 1.0;
-    dev = 0.25;
+    dev = 0.02;
     temp_rescale = 0.5;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
@@ -63,22 +72,17 @@ int main()
     cue_reached = -1;
     path_length = 0.0;
     centroid = CVec2D(0.0,0.0);
-
-    // boolean switches
-    rep_done = false;
-    symmetric = false;
     
     // class vectors
     agent = new spin[total_agents];
     CS = new cue[number_of_cues];
-    preference = new CVec2D[total_agents+1];
-    state = new bool[total_agents+1];
     
     // open output files
     outputFile1 = std::ofstream("geometry.csv");
     
     // output file headers
-    outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "susceptibility" << "\n";
+    if (distance) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << "\n";
+    else outputFile1 << "time" << ", " << "x" << ", " << "y" << "\n";
     
     //===================================
     //==    functions in the main   =====
@@ -96,68 +100,53 @@ int main()
 void RunGeneration()
 {
     double temp = 0.1;
-    SetupSimulation(temp);
-    for (int rep = 0; rep != num_replicates; ++rep)
+    for (left_right_dist = 0; left_right_dist <= 500; )
     {
-        ResetSetup(0, arena_size/2);
-        
-        while (trial_time != num_timesteps)
+        SetupSimulation(temp);
+        for (int rep = 0; rep != num_replicates; ++rep)
         {
-            FlipSpins(false);
-            MoveAgents(temp);
-            if (trial_time % 10 == 0 && trial_time != 0)
+            ResetSetup(0, arena_size/2);
+            
+            while (trial_time != num_timesteps)
             {
-                ResetStates();
-                for (int i = 0; i != equilibration_time; ++i) FlipSpins(true);
-                CalculateMagnetisation();
+                FlipSpins();
+                MoveAgents(temp);
+                if (trial_time % 10 == 0 && trial_time != 0)
+                {
+                    //Graphics();
+                    GenerationOutput(rep);
+                }
                 
-                //Graphics();
-                GenerationOutput(rep);
+                ++trial_time;
+                ++timestep_number;
+                
+                // reset agents if target is reached
+                if (rep_done) break;
             }
             
-            ++trial_time;
-            ++timestep_number;
-            
-            // reset agents if target is reached
-            if (rep_done) break;
+            if (rep % 10 == 0) std::cout << rep << " ";
         }
         
-        if (rep % 10 == 0) std::cout << rep << " ";
+        if (distance) left_right_dist += 10;
+        else left_right_dist += 500;
+        std::cout << left_right_dist << "\n";
     }
 }
 
-void FlipSpins(bool test)
+void FlipSpins()
 {
-    if (test)
-    {
-        int id = rnd::integer(total_agents+1);
-        CalculateEnergy(id);
-        double before = energy;
-        state[id] = !state[id];
-        CalculateEnergy(id);
-        double after = energy;
-        
-        double p_accept = 0.0;
-        if (before < after) p_accept = exp(-(after - before) / (temp_rescale * agent[0].temperature));
-        else p_accept = 1.0;
-        
-        if (rnd::uniform() >= p_accept) state[id] = !state[id];
-    }
-    else
-    {
-        int id = rnd::integer(total_agents);
-        CalculateSystemProperties(id);
-        double before = system_energy;
-        agent[id].state = !agent[id].state;
-        CalculateSystemProperties(id);
-        double after = system_energy;
-        
-        double p_accept = 0.0;
-        if (before < after) p_accept = exp(-(after - before) / (temp_rescale * agent[id].temperature));
-        else p_accept = 1.0;
-        
-        if (rnd::uniform() >= p_accept) agent[id].state = !agent[id].state;
-    }
+    int id = rnd::integer(total_agents);
+    CalculateSystemProperties(id);
+    double before = system_energy;
+    agent[id].state = !agent[id].state;
+    CalculateSystemProperties(id);
+    double after = system_energy;
+    
+    double p_accept = 0.0;
+    if (before < after) p_accept = exp(-(after - before) / (temp_rescale * agent[id].temperature));
+    else p_accept = 1.0;
+    
+    if (rnd::uniform() >= p_accept) agent[id].state = !agent[id].state;
 }
 
 void CalculateSystemProperties(int spin_id)
@@ -177,15 +166,17 @@ void CalculateSystemProperties(int spin_id)
     system_energy /= total_agents;
     
     // calculate magnetisation
+    int total_picked = 0;
     centroid = CVec2D(0.0, 0.0);
     system_magnetisation = CVec2D(0.0, 0.0);
     for (int i = 0; i != total_agents; ++i)
     {
         centroid += agent[i].position;
         system_magnetisation += agent[i].preference * agent[i].state;
+        total_picked += agent[i].picked;
     }
     centroid /= total_agents;
-    system_magnetisation /= total_agents;
+    system_magnetisation /= total_picked;
 }
 
 void MoveAgents(double temp)
@@ -194,9 +185,10 @@ void MoveAgents(double temp)
     
     for (int i = 0; i != total_agents; ++i)
     {
-        agent[i].position += system_magnetisation;
+        if (!distance) agent[i].position += system_magnetisation;
+        else agent[i].position.y += system_magnetisation.y;
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
-        n_inds_preference[agent[i].GetInformed()] += agent[i].state;
+        n_inds_preference[agent[i].GetInformed()] += (agent[i].state * agent[i].picked);
         
         double summation = 0.0;
         for (int j = 0; j != number_of_cues; ++j)
@@ -224,29 +216,6 @@ void MoveAgents(double temp)
     path_length += system_magnetisation.length();
 }
 
-void CalculateEnergy(int spin_id)
-{
-    energy = 0.0;
-    for (int i = 0; i != total_agents+1; ++i)
-    {
-        double ang = preference[spin_id].smallestAngleTo(preference[i]) * PiOver180;
-        
-        ang = PI * pow(ang / PI, nu);
-        double J = cos(ang);
-        //double J = A * (1 - h * ang * ang) * exp(-h * ang * ang) - c;
-        
-        if (i != spin_id) energy -=  J * state[spin_id] * state[i];
-    }
-    energy /= (total_agents+1);
-}
-
-void CalculateMagnetisation()
-{
-    magnetisation = CVec2D(0.0, 0.0);
-    for (int i = 0; i != total_agents+1; ++i) magnetisation += preference[i] * state[i];
-    magnetisation /= (total_agents+1);
-}
-
 //**************************************************************************************************
 //**    SETUP FUNCTIONS ****************************************************************************
 //**************************************************************************************************
@@ -262,6 +231,7 @@ void SetupSimulation(double temp)
     
     centroid = arena_centre;
     if (symmetric) SetupEnvironmentSymmetric();
+    else if (distance) SetupEnvironmentDistances();
     else SetupEnvironmentAsymmetric();
     
     SetupSpins(temp);
@@ -296,6 +266,23 @@ void SetupEnvironmentAsymmetric()
     }
 }
 
+void SetupEnvironmentDistances()
+{
+    for (int i = 0; i != number_of_cues; ++i)
+    {
+        if (number_of_cues == 2)
+        {
+            centres[i] = CVec2D(start_dist, arena_size / 2 - left_right_dist / 2 + i * left_right_dist);
+        }
+        else
+        {
+            centres[i] = CVec2D(start_dist, arena_size / 2 - left_right_dist + i * left_right_dist);
+        }
+        
+        CS[i].Setup(centres[i]);
+    }
+}
+
 void SetupSpins(double temp)
 {
     CVec2D set_position;
@@ -325,12 +312,7 @@ void SetupSpins(double temp)
             
         agent[i].Setup(set_position, set_temperature, set_informed, set_state, set_deviation, set_picked);
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
-        
-        preference[i] = agent[i].preference;
-        state[i] = agent[i].state;
     }
-    preference[total_agents] = (CS[0].centre - centroid).normalise();
-    state[total_agents] = true;
 }
 
 void ResetSetup(double x, double y)
@@ -346,12 +328,7 @@ void ResetSetup(double x, double y)
         agent[i].SetInformed(info);
         agent[i].preference = CVec2D(0.0, 0.0);
         agent[i].prime_deviation = rnd::normal(0.0, dev);
-        
-        preference[i] = agent[i].preference;
-        state[i] = agent[i].state;
     }
-    preference[total_agents] = (CS[rnd::integer(number_of_cues)].centre - centroid).normalise();
-    state[total_agents] = true;
     
     trial_time = 0;
     path_length = 0.0;
@@ -359,17 +336,6 @@ void ResetSetup(double x, double y)
     ++reset_no;
     
     rep_done = false;
-}
-
-void ResetStates()
-{
-    for (int i = 0; i != total_agents; ++i)
-    {
-        preference[i] = agent[i].preference;
-        state[i] = agent[i].state;
-    }
-    preference[total_agents] = (CS[0].centre - centroid).normalise();
-    state[total_agents] = true;
 }
 
 CVec2D RandomBoundedPoint(double x, double y)
@@ -398,12 +364,8 @@ double GetProbability(double x, double mu, double sigma)
 
 void GenerationOutput(int rep)
 {
-    CVec2D v1;
-    CVec2D v2;
-    v1 = system_magnetisation.normalise();
-    v2 = magnetisation.normalise();
-    
-    outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << "\n";
+    if (distance) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << "\n";
+    else outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << "\n";
 }
 
 //**************************************************************************************************
