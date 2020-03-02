@@ -458,6 +458,11 @@ void GenerationOutput(int rep)
     v1 = system_magnetisation.normalise();
     v2 = magnetisation.normalise();
     
+    CVec2D v3;
+    CVec2D v4;
+    v3 = (CS[0].centre - centroid).normalise();
+    v4 = (CS[number_of_cues-1].centre - centroid).normalise();
+    
     if (distance) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << "\n";
     else outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << "\n";
 }
