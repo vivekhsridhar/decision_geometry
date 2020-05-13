@@ -10,7 +10,7 @@
 #define cue_h
 #include "vector2D.h"
 
-const int number_of_cues = 3;
+const int number_of_cues = 2;
 
 class cue
 {

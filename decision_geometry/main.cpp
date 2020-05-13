@@ -64,7 +64,7 @@ int main()
     
     // system parameters
     total_agents = 60;
-    nu = 0.54;
+    nu = 1.0;
     A = 1.8;
     h = 0.25;
     c = 1.0;
@@ -121,7 +121,7 @@ int main()
 
 void RunGeneration()
 {
-    double temp = 0.1;
+    double temp = 0.2;
     for (left_right_dist = 0; left_right_dist <= 500; )
     {
         SetupSimulation(temp);
@@ -137,9 +137,9 @@ void RunGeneration()
                 {
                     if (!distance)
                     {
-                        //ResetStates();
-                        //for (int i = 0; i != equilibration_time; ++i) FlipSpins(true);
-                        //CalculateMagnetisation();
+                        ResetStates();
+                        for (int i = 0; i != equilibration_time; ++i) FlipSpins(true);
+                        CalculateMagnetisation();
                     }
                     
                     //Graphics();
@@ -210,6 +210,7 @@ void CalculateSystemProperties(int spin_id)
         
         if (i != spin_id) system_energy -=  J * agent[spin_id].state * agent[i].state * agent[spin_id].picked * agent[i].picked;
     }
+    system_energy *= number_of_cues;
     system_energy /= total_agents;
     
     // calculate magnetisation
@@ -379,11 +380,6 @@ void SetupSpins(double temp)
         set_picked = true;
         
         set_informed = i % number_of_cues;
-        if (i >= (total_agents-6) && set_informed == 1)
-        {
-            if (i % 2 == 0) set_informed = 0;
-            else set_informed = 2;
-        }
         ++n_inds_preference[set_informed];
         
         set_temperature = temp;
@@ -412,11 +408,6 @@ void ResetSetup(double x, double y)
         else agent[i].state = true;
         
         int info = i % number_of_cues;
-        if (i >= (total_agents-6) && info == 1)
-        {
-            if (i % 2 == 0) info = 0;
-            else info = 2;
-        }
         agent[i].SetInformed(info);
         agent[i].preference = CVec2D(0.0, 0.0);
         agent[i].prime_deviation = rnd::normal(0.0, dev);
