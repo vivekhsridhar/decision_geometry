@@ -34,13 +34,21 @@ int main()
     rep_done = false;
     symmetric = false;
     distance = false;
+    field = false;
     assert(symmetric == false || distance == false);
+    assert(symmetric == false || field == false);
+    assert(field == false || distance == false);
     
     // time parameters
     if (distance)
     {
         num_replicates = 50;
         num_timesteps = 10000;
+    }
+    else if (field)
+    {
+        num_replicates = 50;
+        num_timesteps = 200;
     }
     else
     {
@@ -53,6 +61,7 @@ int main()
     
     // space parameters
     arena_size = 1000;
+    field_points = 101;
     if (number_of_cues == 2) max_angle = PI/3;
     else max_angle = 4*PI/9;
     
@@ -85,6 +94,8 @@ int main()
     
     // output variables
     cue_reached = -1;
+    if (field) output_frequency = num_timesteps-1;
+    else output_frequency = 10;
     path_length = 0.0;
     centroid = CVec2D(0.0,0.0);
     
@@ -98,6 +109,7 @@ int main()
     
     // output file headers
     if (distance) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << "\n";
+    else if (field) outputFile1 << "rep" << ", " << "x" << ", " << "y" << ", " << "dir_x" << ", " << "dir_y" << ", " << "sim_id" << "\n";
     else
     {
         outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "susceptibility" << "\n";
@@ -121,42 +133,62 @@ int main()
 
 void RunGeneration()
 {
+    int num_simulations;
+    if (field) num_simulations = field_points*field_points;
+    else num_simulations = 1;
+    
     double temp = 0.2;
     for (left_right_dist = 0; left_right_dist <= 500; )
     {
         SetupSimulation(temp);
-        for (int rep = 0; rep != num_replicates; ++rep)
+        for (int sim = 0; sim != num_simulations; ++sim)
         {
-            ResetSetup(0, arena_size/2);
+            int x = sim / field_points;
+            int y = sim % field_points;
             
-            while (trial_time != num_timesteps)
+            for (int rep = 0; rep != num_replicates; ++rep)
             {
-                FlipSpins(false);
-                MoveAgents(temp);
-                if (trial_time % 10 == 0 && trial_time != 0)
+                if (field)
                 {
-                    if (!distance)
-                    {
-                        ResetStates();
-                        for (int i = 0; i != equilibration_time; ++i) FlipSpins(true);
-                        CalculateMagnetisation();
-                    }
-                    
-                    //Graphics();
-                    GenerationOutput(rep);
+                    ResetSetup(x, y);
+                    if (agent[0].position.x > CS[0].centre.x) break;
+                }
+                else
+                {
+                    ResetSetup(0, arena_size/2);
                 }
                 
-                ++trial_time;
-                ++timestep_number;
+                while (trial_time != num_timesteps)
+                {
+                    FlipSpins(false);
+                    MoveAgents(temp);
+                    if (trial_time % output_frequency == 0 && trial_time != 0)
+                    {
+                        if (!distance && !field)
+                        {
+                            //ResetStates();
+                            //for (int i = 0; i != equilibration_time; ++i) FlipSpins(true);
+                            //CalculateMagnetisation();
+                        }
+                        
+                        //Graphics();
+                        GenerationOutput(rep, sim);
+                    }
+                    
+                    ++trial_time;
+                    ++timestep_number;
+                    
+                    // reset agents if target is reached
+                    if (rep_done) break;
+                }
                 
-                // reset agents if target is reached
-                if (rep_done) break;
+                if (!distance && !field && rep % 50 == 0) std::cout << rep << " ";
             }
             
-            if (rep % 50 == 0) std::cout << rep << " ";
+            if (field && sim % field_points == 0) std::cout << sim << " ";
         }
         
-        std::cout << left_right_dist << "\n";
+        if (distance) std::cout << left_right_dist << "\n";
         if (distance) left_right_dist += 10;
         else left_right_dist += 1000;
     }
@@ -233,8 +265,9 @@ void MoveAgents(int rep)
     
     for (int i = 0; i != total_agents; ++i)
     {
-        if (!distance) agent[i].position += system_magnetisation;
-        else agent[i].position.y += system_magnetisation.y;
+        if (field) agent[i].position += system_magnetisation*0;
+        else if (distance) agent[i].position.y += system_magnetisation.y;
+        else agent[i].position += system_magnetisation;
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
         //n_inds_preference[agent[i].GetInformed()] += (agent[i].state * agent[i].picked);
         
@@ -442,11 +475,32 @@ void ResetStates()
 
 CVec2D RandomBoundedPoint(double x, double y)
 {
-    double random_x = x + uniform() - 0.5;
-    double random_y = y + uniform() - 0.5;
-    
-    CVec2D random_point(random_x, random_y);
-    if (symmetric) random_point = arena_centre;
+    double random_x;
+    double random_y;
+    CVec2D random_point;
+    if (field)
+    {
+        double range_x = (double) arena_size;
+        double range_y = (double) arena_size;
+        
+        random_x = 0.5;
+        random_y = 0.5;
+        
+        // Individuals start in the centre-left 100th of their world
+        random_x *= (range_x / 1000.0);
+        random_y *= (range_y / 1000.0);
+        random_x += (double) ((arena_size/2)/(field_points-1)*x - range_x / 2000.0);
+        random_y += (double) ((arena_size/2)/(field_points-1)*y - range_y / 2000.0 + arena_size/4);
+        random_point = CVec2D(random_x, random_y);
+    }
+    else
+    {
+        random_x = x + uniform() - 0.5;
+        random_y = y + uniform() - 0.5;
+        
+        random_point = CVec2D(random_x, random_y);
+        if (symmetric) random_point = arena_centre;
+    }
     
     return random_point;
 }
@@ -464,7 +518,7 @@ double GetProbability(double x, double mu, double sigma)
 //**    OUTPUT  ************************************************************************************
 //**************************************************************************************************
 
-void GenerationOutput(int rep)
+void GenerationOutput(int rep, int sim)
 {
     CVec2D v1;
     CVec2D v2;
@@ -472,6 +526,7 @@ void GenerationOutput(int rep)
     v2 = magnetisation.normalise();
     
     if (distance) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << "\n";
+    else if (field) outputFile1 << rep << ", " << centroid.x << ", " << centroid.y << ", " << system_magnetisation.x << ", " << system_magnetisation.y << ", " << sim << "\n";
     else outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << "\n";
 }
 

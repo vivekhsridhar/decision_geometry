@@ -16,6 +16,7 @@
 bool    rep_done;
 bool    symmetric;
 bool    distance;
+bool    field;
 
 // time parameters
 int     num_replicates;
@@ -26,6 +27,7 @@ int     equilibration_time;
 
 // space parameters
 int     arena_size;
+int     field_points;
 double  max_angle;
 double  start_dist;
 double  dist_thresh;
@@ -51,6 +53,7 @@ CVec2D  centres[number_of_cues];
 
 // output variables
 int     cue_reached;
+int     output_frequency;
 double  path_length;
 double  energy;
 CVec2D  magnetisation;
@@ -80,7 +83,7 @@ void ResetStates();
 CVec2D RandomBoundedPoint(double x, double y);
 double GetProbability(double x, double mu, double sigma);
 
-void GenerationOutput(int rep);
+void GenerationOutput(int rep, int sim);
 
 void Graphics();
 
