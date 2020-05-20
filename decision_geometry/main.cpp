@@ -78,7 +78,6 @@ int main()
     h = 0.25;
     c = 1.0;
     dev = 0.02;
-    temp_rescale = 0.5;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
@@ -137,7 +136,7 @@ void RunGeneration()
     if (field) num_simulations = field_points*field_points;
     else num_simulations = 1;
     
-    double temp = 0.2;
+    double temp = 0.1;
     for (left_right_dist = 0; left_right_dist <= 500; )
     {
         SetupSimulation(temp);
@@ -206,7 +205,7 @@ void FlipSpins(bool test)
         double after = system_energy;
         
         double p_accept = 0.0;
-        if (before < after) p_accept = exp(-(after - before) / (temp_rescale * agent[id].temperature));
+        if (before < after) p_accept = exp(-(after - before) / agent[id].temperature);
         else p_accept = 1.0;
         
         if (rnd::uniform() >= p_accept) agent[id].state = !agent[id].state;
@@ -221,7 +220,7 @@ void FlipSpins(bool test)
         double after = energy;
         
         double p_accept = 0.0;
-        if (before < after) p_accept = exp(-(after - before) / (temp_rescale * agent[0].temperature));
+        if (before < after) p_accept = exp(-(after - before) / agent[0].temperature);
         else p_accept = 1.0;
         
         if (rnd::uniform() >= p_accept) state[id] = !state[id];

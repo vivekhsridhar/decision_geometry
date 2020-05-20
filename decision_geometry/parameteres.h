@@ -42,7 +42,6 @@ double  A;
 double  h;
 double  c;
 double  dev;
-double  temp_rescale;
 double  system_energy;
 CVec2D  system_magnetisation;
 
