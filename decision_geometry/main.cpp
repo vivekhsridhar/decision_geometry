@@ -65,15 +65,15 @@ int main()
     if (number_of_cues == 2) max_angle = PI/3;
     else max_angle = 4*PI/9;
     
-    if (distance) start_dist = 100.0;
+    if (distance) start_dist = 75.0;
     else start_dist = 500.0;
     dist_thresh = 10.0;
     left_right_dist = 500.0;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
     
     // system parameters
-    total_agents = 60;
-    nu = 1.0;
+    total_agents = 59;
+    nu = 0.5;
     A = 1.8;
     h = 0.25;
     c = 1.0;
@@ -112,9 +112,7 @@ int main()
     else
     {
         outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "susceptibility" << "\n";
-        outputFile2 << "replicate" << ", " << "n1" << ", " << "n2" << ", ";
-        if (number_of_cues == 3) outputFile2 << "n3" << ", ";
-        outputFile2 << "target_reached" << "\n";
+        outputFile2 << "replicate" << ", " << "angle" << ", " << "target_reached" << "\n";
     }
     
     //===================================
@@ -165,9 +163,9 @@ void RunGeneration()
                     {
                         if (!distance && !field)
                         {
-                            //ResetStates();
-                            //for (int i = 0; i != equilibration_time; ++i) FlipSpins(true);
-                            //CalculateMagnetisation();
+                            ResetStates();
+                            for (int i = 0; i != equilibration_time; ++i) FlipSpins(true);
+                            CalculateMagnetisation();
                         }
                         
                         //Graphics();
@@ -187,8 +185,12 @@ void RunGeneration()
             if (field && sim % field_points == 0) std::cout << sim << " ";
         }
         
-        if (distance) std::cout << left_right_dist << "\n";
-        if (distance) left_right_dist += 10;
+        if (distance) std::cout << left_right_dist << " " << start_dist << "\n";
+        if (distance)
+        {
+            left_right_dist += 10;
+            start_dist += 1.5;
+        }
         else left_right_dist += 1000;
     }
 }
@@ -291,9 +293,7 @@ void MoveAgents(int rep)
             rep_done = true;
             cue_reached = i;
             
-            outputFile2 << rep << ", ";
-            for (int j = 0; j != number_of_cues; ++j) outputFile2 << n_inds_preference[j] << ", ";
-            outputFile2 << i << "\n";
+            outputFile2 << rep << ", " << max_angle << ", " << i << "\n";
         }
     }
     
