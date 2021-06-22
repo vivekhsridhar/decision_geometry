@@ -33,11 +33,14 @@ int main()
     // boolean switches
     rep_done = false;
     symmetric = false;
-    distance = false;
+    distance = true;
+    bilateral_symmetry = false;
     field = false;
     assert(symmetric == false || distance == false);
     assert(symmetric == false || field == false);
     assert(field == false || distance == false);
+    if (!distance) assert(bilateral_symmetry == true);
+    if (!bilateral_symmetry) assert(number_of_cues == 3);
     
     // time parameters
     if (distance)
@@ -65,20 +68,26 @@ int main()
     if (number_of_cues == 2) max_angle = PI/3;
     else max_angle = 4*PI/9;
     
-    if (distance) start_dist = 75.0;
+    if (distance && bilateral_symmetry) start_dist = 75.0;
+    else if (distance && !bilateral_symmetry) start_dist = 150.0;
     else start_dist = 500.0;
     dist_thresh = 10.0;
     left_right_dist = 500.0;
+    centre_left_dist = 50;
+    centre_right_dist = 50;
+    distance_variable = 500.0;
+    distvar_min = 0.0;
+    distvar_max = 500.0;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
     
     // system parameters
     total_agents = 60;
     n_flips = 0;
-    nu = 0.3;
+    nu = 0.5;
     A = 1.8;
     h = 0.25;
     c = 1.0;
-    dev = 0.02;
+    dev = 0.3;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
@@ -108,7 +117,8 @@ int main()
     if (!distance) outputFile2 = std::ofstream("target_reached.csv");
     
     // output file headers
-    if (distance) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << "\n";
+    if (distance && bilateral_symmetry) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << "\n";
+    else if (distance && !bilateral_symmetry) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "centre_left_distance" << ", " << "centre_right_distance" << ", " << "nu" << "\n";
     else if (field) outputFile1 << "rep" << ", " << "x" << ", " << "y" << ", " << "dir_x" << ", " << "dir_y" << ", " << "sim_id" << "\n";
     else
     {
@@ -136,8 +146,23 @@ void RunGeneration()
     else num_simulations = 1;
     
     double temp = 0.1;
-    for (left_right_dist = 0; left_right_dist <= 500; )
+    
+    if (distance && bilateral_symmetry)
     {
+        distance_variable = left_right_dist;
+        distvar_min = 0;
+        distvar_max = 500;
+    }
+    else if (distance && !bilateral_symmetry)
+    {
+        distvar_min = 0.55;
+        distvar_max = 0.65;
+    }
+    for (distance_variable = distvar_min; distance_variable <= distvar_max; )
+    {
+        if (distance && bilateral_symmetry) left_right_dist = distance_variable;
+        else if (distance && !bilateral_symmetry) nu = distance_variable;
+        
         SetupSimulation(temp);
         for (int sim = 0; sim != num_simulations; ++sim)
         {
@@ -186,11 +211,16 @@ void RunGeneration()
             if (field && sim % field_points == 0) std::cout << sim << " ";
         }
         
-        if (distance) std::cout << left_right_dist << " " << start_dist << "\n";
         if (distance)
         {
-            left_right_dist += 10;
-            start_dist += 1.5;
+            std::cout << distance_variable << " " << start_dist << "\n";
+            
+            if (bilateral_symmetry)
+            {
+                distance_variable += 10;
+                start_dist += 1.5;
+            }
+            else distance_variable += 0.02;
         }
         else left_right_dist += 1000;
     }
@@ -338,7 +368,8 @@ void SetupSimulation(double temp)
     
     centroid = arena_centre;
     if (symmetric) SetupEnvironmentSymmetric();
-    else if (distance) SetupEnvironmentDistances();
+    else if (distance && bilateral_symmetry) SetupEnvironmentSymmetricDistances();
+    else if (distance && !bilateral_symmetry) SetupEnvironmentAsymmetricDistances();
     else SetupEnvironmentAsymmetric();
     
     SetupSpins(temp);
@@ -373,7 +404,7 @@ void SetupEnvironmentAsymmetric()
     }
 }
 
-void SetupEnvironmentDistances()
+void SetupEnvironmentSymmetricDistances()
 {
     for (int i = 0; i != number_of_cues; ++i)
     {
@@ -388,6 +419,15 @@ void SetupEnvironmentDistances()
         
         CS[i].Setup(centres[i]);
     }
+}
+
+void SetupEnvironmentAsymmetricDistances()
+{
+    centres[0] = CVec2D(start_dist, arena_size / 2 - (centre_left_dist+centre_right_dist) / 2);
+    centres[1] = CVec2D(start_dist, centres[0].y + centre_left_dist);
+    centres[2] = CVec2D(start_dist, centres[1].y + centre_right_dist);
+                        
+    for (int i = 0; i != number_of_cues; ++i) CS[i].Setup(centres[i]);
 }
 
 void SetupSpins(double temp)
@@ -526,7 +566,8 @@ void GenerationOutput(int rep, int sim)
     v1 = system_magnetisation.normalise();
     v2 = magnetisation.normalise();
     
-    if (distance) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << "\n";
+    if (distance && bilateral_symmetry) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << distance_variable << ", " << start_dist << "\n";
+    else if (distance && !bilateral_symmetry) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << centre_left_dist << ", " << centre_right_dist << ", " << distance_variable << "\n";
     else if (field) outputFile1 << rep << ", " << centroid.x << ", " << centroid.y << ", " << system_magnetisation.x << ", " << system_magnetisation.y << ", " << sim << "\n";
     else outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << "\n";
 }

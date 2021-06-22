@@ -16,6 +16,7 @@
 bool    rep_done;
 bool    symmetric;
 bool    distance;
+bool    bilateral_symmetry;
 bool    field;
 
 // time parameters
@@ -33,6 +34,11 @@ double  start_dist;
 double  dist_thresh;
 double  overlap_sd;
 double  left_right_dist;
+double  centre_left_dist;
+double  centre_right_dist;
+double  distance_variable;
+double  distvar_min;
+double  distvar_max;
 CVec2D  arena_centre;
 
 // system parameters
@@ -76,7 +82,8 @@ void CalculateMagnetisation();
 void SetupSimulation(double temp);
 void SetupEnvironmentSymmetric();
 void SetupEnvironmentAsymmetric();
-void SetupEnvironmentDistances();
+void SetupEnvironmentSymmetricDistances();
+void SetupEnvironmentAsymmetricDistances();
 void SetupSpins(double temp);
 void ResetSetup(double x, double y);
 void ResetStates();
