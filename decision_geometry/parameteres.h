@@ -37,6 +37,7 @@ CVec2D  arena_centre;
 
 // system parameters
 int     total_agents;
+int     n_flips;
 double  nu;
 double  A;
 double  h;

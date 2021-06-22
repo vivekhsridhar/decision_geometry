@@ -57,7 +57,7 @@ int main()
     }
     timestep_number = 0;
     trial_time = 0;
-    equilibration_time = 1000;
+    equilibration_time = 1;
     
     // space parameters
     arena_size = 1000;
@@ -72,7 +72,8 @@ int main()
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
     
     // system parameters
-    total_agents = 59;
+    total_agents = 60;
+    n_flips = 0;
     nu = 0.5;
     A = 1.8;
     h = 0.25;
@@ -112,7 +113,7 @@ int main()
     else
     {
         outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "susceptibility" << "\n";
-        outputFile2 << "replicate" << ", " << "angle" << ", " << "target_reached" << "\n";
+        outputFile2 << "replicate" << ", " << "angle" << ", " << "target_reached" << ", " << "n_flips" << ", " << "trial_duration" << ", " << "speed" << "\n";
     }
     
     //===================================
@@ -223,9 +224,10 @@ void FlipSpins(bool test)
         
         double p_accept = 0.0;
         if (before < after) p_accept = exp(-(after - before) / agent[0].temperature);
-        else p_accept = 1.0;
+        else { p_accept = 1.0; ++n_flips; }
         
         if (rnd::uniform() >= p_accept) state[id] = !state[id];
+        else ++n_flips;
     }
 }
 
@@ -262,8 +264,6 @@ void CalculateSystemProperties(int spin_id)
 
 void MoveAgents(int rep)
 {
-    //std::fill_n(n_inds_preference, number_of_cues, 0);
-    
     for (int i = 0; i != total_agents; ++i)
     {
         if (field) agent[i].position += system_magnetisation*0;
@@ -293,7 +293,7 @@ void MoveAgents(int rep)
             rep_done = true;
             cue_reached = i;
             
-            outputFile2 << rep << ", " << max_angle << ", " << i << "\n";
+            outputFile2 << rep << ", " << max_angle << ", " << i << ", " << n_flips << ", " << trial_time << ", " << path_length / trial_time << "\n";
         }
     }
     
@@ -401,6 +401,7 @@ void SetupSpins(double temp)
     double set_temperature;
     double set_deviation;
     
+    n_flips = 0;
     set_preference = CVec2D(0.0, 0.0);
     
     for(int i = 0; i != total_agents; ++i)
@@ -455,6 +456,7 @@ void ResetSetup(double x, double y)
     
     trial_time = 0;
     path_length = 0.0;
+    n_flips = 0;
     
     ++reset_no;
     
