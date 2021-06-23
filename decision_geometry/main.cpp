@@ -73,17 +73,14 @@ int main()
     else start_dist = 500.0;
     dist_thresh = 10.0;
     left_right_dist = 500.0;
-    centre_left_dist = 50;
-    centre_right_dist = 50;
-    distance_variable = 500.0;
-    distvar_min = 0.0;
-    distvar_max = 500.0;
+    centre_left_dist = 450;
+    centre_right_dist = 150;
     arena_centre = CVec2D((double)arena_size / 2, (double)arena_size / 2);
     
     // system parameters
     total_agents = 60;
     n_flips = 0;
-    nu = 0.5;
+    nu = 0.7;
     A = 1.8;
     h = 0.25;
     c = 1.0;
@@ -146,23 +143,8 @@ void RunGeneration()
     else num_simulations = 1;
     
     double temp = 0.1;
-    
-    if (distance && bilateral_symmetry)
-    {
-        distance_variable = left_right_dist;
-        distvar_min = 0;
-        distvar_max = 500;
-    }
-    else if (distance && !bilateral_symmetry)
-    {
-        distvar_min = 0.55;
-        distvar_max = 0.65;
-    }
-    for (distance_variable = distvar_min; distance_variable <= distvar_max; )
-    {
-        if (distance && bilateral_symmetry) left_right_dist = distance_variable;
-        else if (distance && !bilateral_symmetry) nu = distance_variable;
-        
+    for (left_right_dist = 0; left_right_dist <= 500; )
+    {        
         SetupSimulation(temp);
         for (int sim = 0; sim != num_simulations; ++sim)
         {
@@ -211,16 +193,12 @@ void RunGeneration()
             if (field && sim % field_points == 0) std::cout << sim << " ";
         }
         
-        if (distance)
+        if (distance && bilateral_symmetry)
         {
-            std::cout << distance_variable << " " << start_dist << "\n";
+            std::cout << left_right_dist << " " << start_dist << "\n";
             
-            if (bilateral_symmetry)
-            {
-                distance_variable += 10;
-                start_dist += 1.5;
-            }
-            else distance_variable += 0.02;
+            left_right_dist += 10;
+            start_dist += 1.5;
         }
         else left_right_dist += 1000;
     }
@@ -566,8 +544,8 @@ void GenerationOutput(int rep, int sim)
     v1 = system_magnetisation.normalise();
     v2 = magnetisation.normalise();
     
-    if (distance && bilateral_symmetry) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << distance_variable << ", " << start_dist << "\n";
-    else if (distance && !bilateral_symmetry) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << centre_left_dist << ", " << centre_right_dist << ", " << distance_variable << "\n";
+    if (distance && bilateral_symmetry) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << "\n";
+    else if (distance && !bilateral_symmetry) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << centre_left_dist << ", " << centre_right_dist << ", " << start_dist << "\n";
     else if (field) outputFile1 << rep << ", " << centroid.x << ", " << centroid.y << ", " << system_magnetisation.x << ", " << system_magnetisation.y << ", " << sim << "\n";
     else outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << "\n";
 }

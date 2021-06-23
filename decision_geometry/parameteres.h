@@ -36,9 +36,6 @@ double  overlap_sd;
 double  left_right_dist;
 double  centre_left_dist;
 double  centre_right_dist;
-double  distance_variable;
-double  distvar_min;
-double  distvar_max;
 CVec2D  arena_centre;
 
 // system parameters
