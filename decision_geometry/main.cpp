@@ -69,7 +69,7 @@ int main()
     else max_angle = 4*PI/9;
     
     if (distance && bilateral_symmetry) start_dist = 75.0;
-    else if (distance && !bilateral_symmetry) start_dist = 150.0;
+    else if (distance && !bilateral_symmetry) start_dist = 75.0;
     else start_dist = 500.0;
     dist_thresh = 10.0;
     left_right_dist = 500.0;
@@ -144,7 +144,7 @@ void RunGeneration()
     
     double temp = 0.1;
     for (left_right_dist = 0; left_right_dist <= 500; )
-    {        
+    {
         SetupSimulation(temp);
         for (int sim = 0; sim != num_simulations; ++sim)
         {
@@ -249,7 +249,7 @@ void CalculateSystemProperties(int spin_id)
         
         ang = PI * pow(ang / PI, nu);
         double J = cos(ang);
-        //double J = A * (1 - h * ang * ang) * exp(-h * ang * ang) - c;
+//        double J = A * (1 - h * ang * ang) * exp(-h * ang * ang) - c;
         
         if (i != spin_id) system_energy -=  J * agent[spin_id].state * agent[i].state * agent[spin_id].picked * agent[i].picked;
     }
