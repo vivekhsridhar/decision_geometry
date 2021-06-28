@@ -33,8 +33,8 @@ int main()
     // boolean switches
     rep_done = false;
     symmetric = false;
-    distance = true;
-    bilateral_symmetry = false;
+    distance = false;
+    bilateral_symmetry = true;
     field = false;
     assert(symmetric == false || distance == false);
     assert(symmetric == false || field == false);
@@ -80,11 +80,11 @@ int main()
     // system parameters
     total_agents = 60;
     n_flips = 0;
-    nu = 0.7;
+    nu = 0.2;
     A = 1.8;
     h = 0.25;
     c = 1.0;
-    dev = 0.3;
+    dev = 0.02;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
     
