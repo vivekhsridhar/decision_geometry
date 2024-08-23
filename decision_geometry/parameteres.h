@@ -16,6 +16,7 @@
 bool    rep_done;
 bool    symmetric;
 bool    distance;
+bool    lek;
 
 // time parameters
 int     num_replicates;
@@ -69,11 +70,12 @@ void MoveAgents(int rep);
 void SetupSimulation(double temp);
 void SetupEnvironmentSymmetric();
 void SetupEnvironmentAsymmetric();
-void SetupEnvironmentSymmetricDistances();
-void SetupEnvironmentAsymmetricDistances();
+void SetupEnvironmentDistances();
+void SetupEnvironmentRandom();
 void SetupSpins(double temp);
 void ResetSetup(double x, double y);
 CVec2D RandomBoundedPoint(double x, double y);
+CVec2D RandomPolarPoint(double rmin, double rmax);
 double GetProbability(double x, double mu, double sigma);
 
 void GenerationOutput(int rep);

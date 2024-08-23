@@ -13,6 +13,7 @@ using namespace rnd;
 
 std::ofstream outputFile1;
 std::ofstream outputFile2;
+std::ofstream outputFile3;
 
 //**************************************************************************************************
 //**    MAIN    ************************************************************************************
@@ -30,7 +31,10 @@ int main()
     rep_done = false;
     symmetric = false;
     distance = false;
-    assert(symmetric == false || distance == false);
+    lek = true;
+    assert(distance == false || symmetric == false);
+    assert(distance == false || lek == false);
+    assert(symmetric == false || lek == false);
     
     // time parameters
     if (distance)
@@ -70,6 +74,7 @@ int main()
     dev = 0.02;
     system_energy = 0.0;
     system_magnetisation = CVec2D(0.0, 0.0);
+    assert(total_agents >= 5 * number_of_cues);
     
     // run parameters
     reset_no = 0;
@@ -86,14 +91,19 @@ int main()
     
     // open output files
     outputFile1 = std::ofstream("geometry.csv");
-    if (!distance) outputFile2 = std::ofstream("target_reached.csv");
+    if (!distance) 
+    {
+        outputFile2 = std::ofstream("targets.csv");
+        outputFile3 = std::ofstream("targets_reached.csv");
+    }
     
     // output file headers
     if (distance) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << "\n";
     else
     {
         outputFile1 << "time" << ", " << "x" << ", " << "y" << "\n";
-        outputFile2 << "replicate" << ", " << "angle" << ", " << "target_reached" << ", " << "n_flips" << ", " << "trial_duration" << ", " << "speed" << "\n";
+        outputFile2 << "target_id" << ", " << "target_x" << ", " << "target_y" << "\n";
+        outputFile3 << "replicate" << ", " << "angle" << ", " << "target_reached" << ", " << "n_flips" << ", " << "trial_duration" << ", " << "speed" << "\n";
     }
     
     //===================================
@@ -223,7 +233,7 @@ void MoveAgents(int rep)
             rep_done = true;
             cue_reached = i;
             
-            outputFile2 << rep << ", " << max_angle << ", " << i << ", " << n_flips << ", " << trial_time << ", " << path_length / trial_time << "\n";
+            outputFile3 << rep << ", " << max_angle << ", " << i << ", " << n_flips << ", " << trial_time << ", " << path_length / trial_time << "\n";
         }
     }
     
@@ -244,8 +254,9 @@ void SetupSimulation(double temp)
     path_length = 0.0;
     
     centroid = arena_centre;
-    if (symmetric) SetupEnvironmentSymmetric();
-    else if (distance) SetupEnvironmentSymmetricDistances();
+    if (lek) SetupEnvironmentRandom();
+    else if (symmetric) SetupEnvironmentSymmetric();
+    else if (distance) SetupEnvironmentDistances();
     else SetupEnvironmentAsymmetric();
     
     SetupSpins(temp);
@@ -262,6 +273,8 @@ void SetupEnvironmentSymmetric()
     {
         centres[i] = start + CVec2D(start_dist * cos((i-1) * theta), start_dist * sin((i-1) * theta));
         CS[i].Setup(centres[i]);
+        
+        outputFile2 << i << ", " << centres[i].x << ", " << centres[i].y << "\n";
     }
 }
 
@@ -277,10 +290,12 @@ void SetupEnvironmentAsymmetric()
     {
         centres[i] = start + CVec2D(start_dist * cos(i * theta - max_angle/2), start_dist * sin(i * theta - max_angle/2));
         CS[i].Setup(centres[i]);
+        
+        outputFile2 << i << ", " << centres[i].x << ", " << centres[i].y << "\n";
     }
 }
 
-void SetupEnvironmentSymmetricDistances()
+void SetupEnvironmentDistances()
 {
     for (int i = 0; i != number_of_cues; ++i)
     {
@@ -294,6 +309,17 @@ void SetupEnvironmentSymmetricDistances()
         }
         
         CS[i].Setup(centres[i]);
+    }
+}
+
+void SetupEnvironmentRandom()
+{
+    for (int i = 0; i != number_of_cues; ++i)
+    {
+        centres[i] = arena_centre + RandomPolarPoint(0, arena_size/2 * arena_size/2);
+        CS[i].Setup(centres[i]);
+        
+        outputFile2 << i << ", " << centres[i].x << ", " << centres[i].y << "\n";
     }
 }
 
@@ -341,7 +367,6 @@ void ResetSetup(double x, double y)
         int info = i % number_of_cues;
         agent[i].SetInformed(info);
         agent[i].preference = CVec2D(0.0, 0.0);
-        agent[i].prime_deviation = rnd::normal(0.0, dev);
     }
     
     trial_time = 0;
@@ -366,6 +391,15 @@ CVec2D RandomBoundedPoint(double x, double y)
     if (symmetric) random_point = arena_centre;
     
     return random_point;
+}
+
+CVec2D RandomPolarPoint(double rmin, double rmax)
+{
+    double random_r = (rmax - rmin) * uniform() + rmin;
+    double random_theta = 2 * PI * uniform() - PI;
+    double sqrt_r = sqrt(random_r);  // Avoid recalculating sqrt
+
+    return CVec2D(sqrt_r * cos(random_theta), sqrt_r * sin(random_theta));
 }
 
 double GetProbability(double x, double mu, double sigma)

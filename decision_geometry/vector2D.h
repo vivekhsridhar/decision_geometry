@@ -25,6 +25,7 @@ public:
     
     CVec2D(double x1, double x2);
     CVec2D(CVec2D&);
+    CVec2D(CVec2D&&) noexcept;
     double x, y;
     
     CVec2D operator+(const CVec2D&);

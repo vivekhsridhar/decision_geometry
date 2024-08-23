@@ -30,7 +30,6 @@ public:
     bool picked;
     
     double temperature;
-    double prime_deviation;
     double deviations[number_of_cues];
     double probabilities[number_of_cues];   // probability this spin is picked based on the deviations
     

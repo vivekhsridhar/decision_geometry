@@ -31,6 +31,15 @@ CVec2D::CVec2D(CVec2D& other_vector)
     x = other_vector.x; y = other_vector.y;
 }
 
+// Move Constructor
+CVec2D::CVec2D(CVec2D&& other) noexcept
+    : x(other.x), y(other.y)
+{
+    // Leave 'other' in a valid state
+    other.x = 0.0;
+    other.y = 0.0;
+}
+
 //  Add Vectors
 CVec2D CVec2D::operator+(const CVec2D& vec)
 {
