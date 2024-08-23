@@ -29,7 +29,7 @@ int main()
     // boolean switches
     rep_done = false;
     symmetric = false;
-    distance = true;
+    distance = false;
     assert(symmetric == false || distance == false);
     
     // time parameters
@@ -73,13 +73,6 @@ int main()
     
     // run parameters
     reset_no = 0;
-    std::fill_n(n_inds_preference, number_of_cues, 0);
-    
-    // output parameter
-    energy = 0.0;
-    magnetisation = CVec2D(0.0, 0.0);
-    preference = new CVec2D[total_agents+1];
-    state = new bool[total_agents+1];
     
     // output variables
     cue_reached = -1;
@@ -99,7 +92,7 @@ int main()
     if (distance) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << "\n";
     else
     {
-        outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "susceptibility" << "\n";
+        outputFile1 << "time" << ", " << "x" << ", " << "y" << "\n";
         outputFile2 << "replicate" << ", " << "angle" << ", " << "target_reached" << ", " << "n_flips" << ", " << "trial_duration" << ", " << "speed" << "\n";
     }
     
@@ -129,20 +122,9 @@ void RunGeneration()
             
             while (trial_time != num_timesteps)
             {
-                FlipSpins(false);
+                FlipSpins();
                 MoveAgents(temp);
-                if (trial_time % output_frequency == 0 && trial_time != 0)
-                {
-                    if (!distance)
-                    {
-                        ResetStates();
-                        for (int i = 0; i != equilibration_time; ++i) FlipSpins(true);
-                        CalculateMagnetisation();
-                    }
-                    
-                    //Graphics();
-                    GenerationOutput(rep);
-                }
+                if (trial_time % output_frequency == 0 && trial_time != 0) GenerationOutput(rep);
                 
                 ++trial_time;
                 ++timestep_number;
@@ -165,39 +147,20 @@ void RunGeneration()
     }
 }
 
-void FlipSpins(bool test)
+void FlipSpins()
 {
-    if (distance || !test)
-    {
-        int id = rnd::integer(total_agents);
-        CalculateSystemProperties(id);
-        double before = system_energy;
-        agent[id].state = !agent[id].state;
-        CalculateSystemProperties(id);
-        double after = system_energy;
-        
-        double p_accept = 0.0;
-        if (before < after) p_accept = exp(-(after - before) / agent[id].temperature);
-        else p_accept = 1.0;
-        
-        if (rnd::uniform() >= p_accept) agent[id].state = !agent[id].state;
-    }
-    else
-    {
-        int id = rnd::integer(total_agents+1);
-        CalculateEnergy(id);
-        double before = energy;
-        state[id] = !state[id];
-        CalculateEnergy(id);
-        double after = energy;
-        
-        double p_accept = 0.0;
-        if (before < after) p_accept = exp(-(after - before) / agent[0].temperature);
-        else { p_accept = 1.0; ++n_flips; }
-        
-        if (rnd::uniform() >= p_accept) state[id] = !state[id];
-        else ++n_flips;
-    }
+    int id = rnd::integer(total_agents);
+    CalculateSystemProperties(id);
+    double before = system_energy;
+    agent[id].state = !agent[id].state;
+    CalculateSystemProperties(id);
+    double after = system_energy;
+    
+    double p_accept = 0.0;
+    if (before < after) p_accept = exp(-(after - before) / agent[id].temperature);
+    else p_accept = 1.0;
+    
+    if (rnd::uniform() >= p_accept) agent[id].state = !agent[id].state;
 }
 
 void CalculateSystemProperties(int spin_id)
@@ -238,7 +201,6 @@ void MoveAgents(int rep)
         if (distance) agent[i].position.y += system_magnetisation.y;
         else agent[i].position += system_magnetisation;
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
-        //n_inds_preference[agent[i].GetInformed()] += (agent[i].state * agent[i].picked);
         
         double summation = 0.0;
         for (int j = 0; j != number_of_cues; ++j)
@@ -266,29 +228,6 @@ void MoveAgents(int rep)
     }
     
     path_length += system_magnetisation.length();
-}
-
-void CalculateEnergy(int spin_id)
-{
-    energy = 0.0;
-    for (int i = 0; i != total_agents+1; ++i)
-    {
-        double ang = preference[spin_id].smallestAngleTo(preference[i]) * PiOver180;
-        
-        ang = PI * pow(ang / PI, nu);
-        double J = cos(ang);
-        //double J = A * (1 - h * ang * ang) * exp(-h * ang * ang) - c;
-        
-        if (i != spin_id) energy -=  J * state[spin_id] * state[i];
-    }
-    energy /= (total_agents+1);
-}
-
-void CalculateMagnetisation()
-{
-    magnetisation = CVec2D(0.0, 0.0);
-    for (int i = 0; i != total_agents+1; ++i) magnetisation += preference[i] * state[i];
-    magnetisation /= (total_agents+1);
 }
 
 //**************************************************************************************************
@@ -381,22 +320,13 @@ void SetupSpins(double temp)
         set_picked = true;
         
         set_informed = i % number_of_cues;
-        ++n_inds_preference[set_informed];
         
         set_temperature = temp;
         set_deviation = rnd::normal(0.0, dev);
             
         agent[i].Setup(set_position, set_temperature, set_informed, set_state, set_deviation, set_picked);
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
-        
-        if (!distance)
-        {
-            preference[i] = agent[i].preference;
-            state[i] = agent[i].state;
-        }
     }
-    preference[total_agents] = (CS[0].centre - centroid).normalise();
-    state[total_agents] = true;
 }
 
 void ResetSetup(double x, double y)
@@ -412,14 +342,6 @@ void ResetSetup(double x, double y)
         agent[i].SetInformed(info);
         agent[i].preference = CVec2D(0.0, 0.0);
         agent[i].prime_deviation = rnd::normal(0.0, dev);
-        
-        if (!distance)
-        {
-            preference[i] = agent[i].preference;
-            state[i] = true;
-        }
-        preference[total_agents] = (CS[rnd::integer(number_of_cues)].centre - centroid).normalise();
-        state[total_agents] = true;
     }
     
     trial_time = 0;
@@ -429,17 +351,6 @@ void ResetSetup(double x, double y)
     ++reset_no;
     
     rep_done = false;
-}
-
-void ResetStates()
-{
-    for (int i = 0; i != total_agents; ++i)
-    {
-        preference[i] = agent[i].preference;
-        state[i] = agent[i].state;
-    }
-    preference[total_agents] = (CS[0].centre - centroid).normalise();
-    state[total_agents] = true;
 }
 
 CVec2D RandomBoundedPoint(double x, double y)
@@ -472,11 +383,6 @@ double GetProbability(double x, double mu, double sigma)
 
 void GenerationOutput(int rep)
 {
-    CVec2D v1;
-    CVec2D v2;
-    v1 = system_magnetisation.normalise();
-    v2 = magnetisation.normalise();
-    
     if (distance) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << "\n";
-    else outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << "\n";
+    else outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << "\n";
 }
