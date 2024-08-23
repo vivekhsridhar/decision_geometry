@@ -16,7 +16,6 @@
 bool    rep_done;
 bool    symmetric;
 bool    distance;
-bool    bilateral_symmetry;
 
 // time parameters
 int     num_replicates;

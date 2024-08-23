@@ -29,11 +29,8 @@ int main()
     // boolean switches
     rep_done = false;
     symmetric = false;
-    distance = false;
-    bilateral_symmetry = true;
+    distance = true;
     assert(symmetric == false || distance == false);
-    if (!distance) assert(bilateral_symmetry == true);
-    if (!bilateral_symmetry) assert(number_of_cues == 3);
     
     // time parameters
     if (distance)
@@ -55,8 +52,7 @@ int main()
     if (number_of_cues == 2) max_angle = PI/3;
     else max_angle = 4*PI/9;
     
-    if (distance && bilateral_symmetry) start_dist = 75.0;
-    else if (distance && !bilateral_symmetry) start_dist = 75.0;
+    if (distance) start_dist = 75.0;
     else start_dist = 500.0;
     dist_thresh = 10.0;
     left_right_dist = 500.0;
@@ -100,8 +96,7 @@ int main()
     if (!distance) outputFile2 = std::ofstream("target_reached.csv");
     
     // output file headers
-    if (distance && bilateral_symmetry) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << "\n";
-    else if (distance && !bilateral_symmetry) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "centre_left_distance" << ", " << "centre_right_distance" << ", " << "nu" << "\n";
+    if (distance) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << "\n";
     else
     {
         outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "susceptibility" << "\n";
@@ -159,7 +154,7 @@ void RunGeneration()
             if (!distance && rep % 50 == 0) std::cout << rep << " ";
         }
         
-        if (distance && bilateral_symmetry)
+        if (distance)
         {
             std::cout << left_right_dist << " " << start_dist << "\n";
             
@@ -311,8 +306,7 @@ void SetupSimulation(double temp)
     
     centroid = arena_centre;
     if (symmetric) SetupEnvironmentSymmetric();
-    else if (distance && bilateral_symmetry) SetupEnvironmentSymmetricDistances();
-    else if (distance && !bilateral_symmetry) SetupEnvironmentAsymmetricDistances();
+    else if (distance) SetupEnvironmentSymmetricDistances();
     else SetupEnvironmentAsymmetric();
     
     SetupSpins(temp);
@@ -362,15 +356,6 @@ void SetupEnvironmentSymmetricDistances()
         
         CS[i].Setup(centres[i]);
     }
-}
-
-void SetupEnvironmentAsymmetricDistances()
-{
-    centres[0] = CVec2D(start_dist, arena_size / 2 - (centre_left_dist+centre_right_dist) / 2);
-    centres[1] = CVec2D(start_dist, centres[0].y + centre_left_dist);
-    centres[2] = CVec2D(start_dist, centres[1].y + centre_right_dist);
-                        
-    for (int i = 0; i != number_of_cues; ++i) CS[i].Setup(centres[i]);
 }
 
 void SetupSpins(double temp)
@@ -492,7 +477,6 @@ void GenerationOutput(int rep)
     v1 = system_magnetisation.normalise();
     v2 = magnetisation.normalise();
     
-    if (distance && bilateral_symmetry) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << "\n";
-    else if (distance && !bilateral_symmetry) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << centre_left_dist << ", " << centre_right_dist << ", " << start_dist << "\n";
+    if (distance) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << "\n";
     else outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << "\n";
 }
