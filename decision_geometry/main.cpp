@@ -29,9 +29,9 @@ int main()
     
     // boolean switches
     rep_done = false;
-    symmetric = false;
+    symmetric = true;
     distance = false;
-    lek = true;
+    lek = false;
     assert(distance == false || symmetric == false);
     assert(distance == false || lek == false);
     assert(symmetric == false || lek == false);
