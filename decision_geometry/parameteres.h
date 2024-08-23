@@ -17,7 +17,6 @@ bool    rep_done;
 bool    symmetric;
 bool    distance;
 bool    bilateral_symmetry;
-bool    field;
 
 // time parameters
 int     num_replicates;
@@ -28,7 +27,6 @@ int     equilibration_time;
 
 // space parameters
 int     arena_size;
-int     field_points;
 double  max_angle;
 double  start_dist;
 double  dist_thresh;
@@ -87,8 +85,6 @@ void ResetStates();
 CVec2D RandomBoundedPoint(double x, double y);
 double GetProbability(double x, double mu, double sigma);
 
-void GenerationOutput(int rep, int sim);
-
-void Graphics();
+void GenerationOutput(int rep);
 
 #endif /* parameteres_h */

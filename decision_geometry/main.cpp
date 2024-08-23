@@ -6,14 +6,10 @@
 //  Copyright © 2019 Vivek Sridhar. All rights reserved.
 //
 
-#include "opencv2/core.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/videoio.hpp"
+#include <cassert>
 #include "parameteres.h"
 
 using namespace rnd;
-using namespace cv;
 
 std::ofstream outputFile1;
 std::ofstream outputFile2;
@@ -35,10 +31,7 @@ int main()
     symmetric = false;
     distance = false;
     bilateral_symmetry = true;
-    field = false;
     assert(symmetric == false || distance == false);
-    assert(symmetric == false || field == false);
-    assert(field == false || distance == false);
     if (!distance) assert(bilateral_symmetry == true);
     if (!bilateral_symmetry) assert(number_of_cues == 3);
     
@@ -47,11 +40,6 @@ int main()
     {
         num_replicates = 50;
         num_timesteps = 10000;
-    }
-    else if (field)
-    {
-        num_replicates = 50;
-        num_timesteps = 200;
     }
     else
     {
@@ -64,7 +52,6 @@ int main()
     
     // space parameters
     arena_size = 1000;
-    field_points = 101;
     if (number_of_cues == 2) max_angle = PI/3;
     else max_angle = 4*PI/9;
     
@@ -80,7 +67,7 @@ int main()
     // system parameters
     total_agents = 60;
     n_flips = 0;
-    nu = 0.2;
+    nu = 0.5;
     A = 1.8;
     h = 0.25;
     c = 1.0;
@@ -100,8 +87,7 @@ int main()
     
     // output variables
     cue_reached = -1;
-    if (field) output_frequency = num_timesteps-1;
-    else output_frequency = 10;
+    output_frequency = 10;
     path_length = 0.0;
     centroid = CVec2D(0.0,0.0);
     
@@ -116,7 +102,6 @@ int main()
     // output file headers
     if (distance && bilateral_symmetry) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "left_right_distance" << ", " << "front_back_distance" << "\n";
     else if (distance && !bilateral_symmetry) outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "centre_left_distance" << ", " << "centre_right_distance" << ", " << "nu" << "\n";
-    else if (field) outputFile1 << "rep" << ", " << "x" << ", " << "y" << ", " << "dir_x" << ", " << "dir_y" << ", " << "sim_id" << "\n";
     else
     {
         outputFile1 << "time" << ", " << "x" << ", " << "y" << ", " << "susceptibility" << "\n";
@@ -138,59 +123,40 @@ int main()
 
 void RunGeneration()
 {
-    int num_simulations;
-    if (field) num_simulations = field_points*field_points;
-    else num_simulations = 1;
-    
     double temp = 0.1;
     for (left_right_dist = 0; left_right_dist <= 500; )
     {
         SetupSimulation(temp);
-        for (int sim = 0; sim != num_simulations; ++sim)
+           
+        for (int rep = 0; rep != num_replicates; ++rep)
         {
-            int x = sim / field_points;
-            int y = sim % field_points;
+            ResetSetup(0, arena_size/2);
             
-            for (int rep = 0; rep != num_replicates; ++rep)
+            while (trial_time != num_timesteps)
             {
-                if (field)
+                FlipSpins(false);
+                MoveAgents(temp);
+                if (trial_time % output_frequency == 0 && trial_time != 0)
                 {
-                    ResetSetup(x, y);
-                    if (agent[0].position.x > CS[0].centre.x) break;
-                }
-                else
-                {
-                    ResetSetup(0, arena_size/2);
-                }
-                
-                while (trial_time != num_timesteps)
-                {
-                    FlipSpins(false);
-                    MoveAgents(temp);
-                    if (trial_time % output_frequency == 0 && trial_time != 0)
+                    if (!distance)
                     {
-                        if (!distance && !field)
-                        {
-                            ResetStates();
-                            for (int i = 0; i != equilibration_time; ++i) FlipSpins(true);
-                            CalculateMagnetisation();
-                        }
-                        
-                        //Graphics();
-                        GenerationOutput(rep, sim);
+                        ResetStates();
+                        for (int i = 0; i != equilibration_time; ++i) FlipSpins(true);
+                        CalculateMagnetisation();
                     }
                     
-                    ++trial_time;
-                    ++timestep_number;
-                    
-                    // reset agents if target is reached
-                    if (rep_done) break;
+                    //Graphics();
+                    GenerationOutput(rep);
                 }
                 
-                if (!distance && !field && rep % 50 == 0) std::cout << rep << " ";
+                ++trial_time;
+                ++timestep_number;
+                
+                // reset agents if target is reached
+                if (rep_done) break;
             }
             
-            if (field && sim % field_points == 0) std::cout << sim << " ";
+            if (!distance && rep % 50 == 0) std::cout << rep << " ";
         }
         
         if (distance && bilateral_symmetry)
@@ -274,8 +240,7 @@ void MoveAgents(int rep)
 {
     for (int i = 0; i != total_agents; ++i)
     {
-        if (field) agent[i].position += system_magnetisation*0;
-        else if (distance) agent[i].position.y += system_magnetisation.y;
+        if (distance) agent[i].position.y += system_magnetisation.y;
         else agent[i].position += system_magnetisation;
         agent[i].AddPreference(CS[agent[i].GetInformed()].centre);
         //n_inds_preference[agent[i].GetInformed()] += (agent[i].state * agent[i].picked);
@@ -497,29 +462,12 @@ CVec2D RandomBoundedPoint(double x, double y)
     double random_x;
     double random_y;
     CVec2D random_point;
-    if (field)
-    {
-        double range_x = (double) arena_size;
-        double range_y = (double) arena_size;
-        
-        random_x = 0.5;
-        random_y = 0.5;
-        
-        // Individuals start in the centre-left 100th of their world
-        random_x *= (range_x / 1000.0);
-        random_y *= (range_y / 1000.0);
-        random_x += (double) ((arena_size/2)/(field_points-1)*x - range_x / 2000.0);
-        random_y += (double) ((arena_size/2)/(field_points-1)*y - range_y / 2000.0 + arena_size/4);
-        random_point = CVec2D(random_x, random_y);
-    }
-    else
-    {
-        random_x = x + uniform() - 0.5;
-        random_y = y + uniform() - 0.5;
-        
-        random_point = CVec2D(random_x, random_y);
-        if (symmetric) random_point = arena_centre;
-    }
+    
+    random_x = x + uniform() - 0.5;
+    random_y = y + uniform() - 0.5;
+    
+    random_point = CVec2D(random_x, random_y);
+    if (symmetric) random_point = arena_centre;
     
     return random_point;
 }
@@ -537,7 +485,7 @@ double GetProbability(double x, double mu, double sigma)
 //**    OUTPUT  ************************************************************************************
 //**************************************************************************************************
 
-void GenerationOutput(int rep, int sim)
+void GenerationOutput(int rep)
 {
     CVec2D v1;
     CVec2D v2;
@@ -546,36 +494,5 @@ void GenerationOutput(int rep, int sim)
     
     if (distance && bilateral_symmetry) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << left_right_dist << ", " << start_dist << "\n";
     else if (distance && !bilateral_symmetry) outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << centre_left_dist << ", " << centre_right_dist << ", " << start_dist << "\n";
-    else if (field) outputFile1 << rep << ", " << centroid.x << ", " << centroid.y << ", " << system_magnetisation.x << ", " << system_magnetisation.y << ", " << sim << "\n";
     else outputFile1 << trial_time << ", " << centroid.x << ", " << centroid.y << ", " << v1.smallestAngleTo(v2) << "\n";
-}
-
-//**************************************************************************************************
-//**    GRAPHICS   *********************************************************************************
-//**************************************************************************************************
-
-void Graphics()
-{
-    // Colours vector
-    Scalar colours[6] = {Scalar(234, 174, 84), Scalar(24, 202, 247), Scalar(60, 76, 231), Scalar(113, 204, 46), Scalar(34, 126, 230), Scalar(241, 240, 236)};
-    
-    // Draw area
-    Mat visualisation = Mat::zeros(arena_size, arena_size, CV_8UC3);
-    for (int i = 0; i != number_of_cues; ++i)
-    {
-        circle(visualisation, Point(CS[i].centre.x, CS[i].centre.y), 8, colours[i], -1, CV_AA);
-    }
-    
-    // Draw spins
-    for (int i = 0; i != total_agents; ++i)
-    {
-        int colour = agent[i].GetInformed();
-        circle(visualisation, Point(agent[i].position.x, agent[i].position.y), 2, colours[colour], -1);
-    }
-    
-    // Display timestep number & cue counter on screen
-    putText(visualisation, std::to_string(timestep_number), cvPoint(10,30), FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(200,200,250), 1, CV_AA);
-    
-    imshow("ising_model", visualisation);
-    waitKey(1);
 }
