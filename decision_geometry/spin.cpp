@@ -23,6 +23,7 @@ void spin::Setup(const CVec2D& set_position, double& set_temperature, int& set_i
     state = set_state;
     
     temperature = set_temperature;
+    prime_deviation = set_deviation;
     picked = set_picked;
     
     std::fill_n(deviations, number_of_cues, 0.0);
@@ -32,6 +33,7 @@ void spin::Setup(const CVec2D& set_position, double& set_temperature, int& set_i
 void spin::AddPreference(CVec2D& cue_centre)
 {
     preference = (cue_centre - position).normalise();
+    preference.rotate(prime_deviation * PiUnder180);
 }
 
 void spin::GetDeviation(CVec2D& cue_centre, int cue_id)
@@ -57,5 +59,6 @@ void spin::Copy(spin& source)
     informed = source.informed;
     state = source.state;
     temperature = source.temperature;
+    prime_deviation = source.prime_deviation;
     picked = source.picked;
 }

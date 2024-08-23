@@ -12,6 +12,7 @@
 
 #include <cmath>
 #include <stdlib.h>
+#include <sstream>
 #include "random.h"
 
 const double PiOver180 = 1.74532925199433E-002;
@@ -24,7 +25,7 @@ public:
     ~CVec2D(void);
     
     CVec2D(double x1, double x2);
-    CVec2D(CVec2D&);
+    CVec2D(const CVec2D&);
     CVec2D(CVec2D&&) noexcept;
     double x, y;
     

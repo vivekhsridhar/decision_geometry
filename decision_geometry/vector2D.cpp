@@ -25,8 +25,8 @@ CVec2D::CVec2D(double x1, double y1)
     x = x1; y = y1;
 }
 
-//  Copy Constructor
-CVec2D::CVec2D(CVec2D& other_vector)
+// Copy constructor
+CVec2D::CVec2D(const CVec2D& other_vector)
 {
     x = other_vector.x; y = other_vector.y;
 }
