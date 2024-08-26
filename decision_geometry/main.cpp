@@ -29,9 +29,11 @@ int main()
     
     // boolean switches
     rep_done = false;
-    symmetric = true;
+    symmetric = false;
     distance = false;
-    lek = false;
+    lek = true;
+    random_lek = true;
+    
     assert(distance == false || symmetric == false);
     assert(distance == false || lek == false);
     assert(symmetric == false || lek == false);
@@ -84,6 +86,7 @@ int main()
     output_frequency = 10;
     path_length = 0.0;
     centroid = CVec2D(0.0,0.0);
+    filename = "/Users/vivekhsridhar/Library/Mobile Documents/com~apple~CloudDocs/Documents/Code/decision_geometry/decision_geometry/output/territories.csv";
     
     // class vectors
     agent = new spin[total_agents];
@@ -254,7 +257,11 @@ void SetupSimulation(double temp)
     path_length = 0.0;
     
     centroid = arena_centre;
-    if (lek) SetupEnvironmentRandom();
+    if (lek)
+    {
+        if (random_lek) SetupEnvironmentRandom();
+        else SetupEnvironmentFromCSV(filename);
+    }
     else if (symmetric) SetupEnvironmentSymmetric();
     else if (distance) SetupEnvironmentDistances();
     else SetupEnvironmentAsymmetric();
@@ -319,6 +326,49 @@ void SetupEnvironmentRandom()
         centres[i] = arena_centre + RandomPolarPoint(0, arena_size/2 * arena_size/2);
         CS[i].Setup(centres[i]);
         
+        outputFile2 << i << ", " << centres[i].x << ", " << centres[i].y << "\n";
+    }
+}
+
+void SetupEnvironmentFromCSV(const std::string& file_name)
+{
+    std::vector<CVec2D> positions;
+    std::ifstream file(file_name);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << file_name << std::endl;
+        return;
+    }
+
+    std::string line;
+    std::getline(file, line); // Ignore the header line
+
+    int row_count = 0;
+    
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string idx_str, x_str, y_str;
+
+        std::getline(ss, idx_str, ',');
+        std::getline(ss, x_str, ',');
+        std::getline(ss, y_str, ',');
+
+        double x = std::stod(x_str);
+        double y = std::stod(y_str);
+
+        positions.emplace_back(x, y);
+        ++row_count;
+    }
+
+    file.close();
+
+    // Use assert to check the number of rows matches number_of_cues
+    assert(row_count == number_of_cues && "Error: Number of rows in CSV file does not match number_of_cues");
+
+    for (std::size_t i = 0; i < positions.size(); ++i) {
+        centres[i] = positions[i];
+        CS[i].Setup(centres[i]);
+
         outputFile2 << i << ", " << centres[i].x << ", " << centres[i].y << "\n";
     }
 }

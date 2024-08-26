@@ -17,6 +17,7 @@ bool    rep_done;
 bool    symmetric;
 bool    distance;
 bool    lek;
+bool    random_lek;
 
 // time parameters
 int     num_replicates;
@@ -56,6 +57,7 @@ int     cue_reached;
 int     output_frequency;
 double  path_length;
 CVec2D  centroid;
+std::string filename;
 
 // class vectors
 spin*   agent;
@@ -72,6 +74,7 @@ void SetupEnvironmentSymmetric();
 void SetupEnvironmentAsymmetric();
 void SetupEnvironmentDistances();
 void SetupEnvironmentRandom();
+void SetupEnvironmentFromCSV(const std::string& filename);
 void SetupSpins(double temp);
 void ResetSetup(double x, double y);
 CVec2D RandomBoundedPoint(double x, double y);
